@@ -1,0 +1,1035 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Roblox Key System Editor</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #1e1e2e;
+            color: #ffffff;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+        
+        .container {
+            width: 90%;
+            max-width: 1000px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background-color: #242436;
+            border-radius: 10px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #70a5fd;
+            margin-bottom: 1.5rem;
+        }
+        
+        .input-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: bold;
+            color: #c3e8ff;
+        }
+        
+        input[type="text"] {
+            width: 100%;
+            padding: 0.8rem;
+            font-size: 1rem;
+            background-color: #32324a;
+            border: 1px solid #444464;
+            border-radius: 5px;
+            color: #ffffff;
+            transition: all 0.3s ease;
+        }
+        
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #70a5fd;
+            box-shadow: 0 0 0 2px rgba(112, 165, 253, 0.3);
+        }
+        
+        .button-group {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+        
+        button {
+            padding: 0.8rem 1.5rem;
+            font-size: 1rem;
+            font-weight: bold;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .update-btn {
+            background-color: #70a5fd;
+            color: white;
+        }
+        
+        .update-btn:hover {
+            background-color: #5a87d6;
+        }
+        
+        .copy-btn {
+            background-color: #79dcaa;
+            color: #242436;
+        }
+        
+        .copy-btn:hover {
+            background-color: #5cb989;
+        }
+        
+        .code-container {
+            margin-top: 2rem;
+            position: relative;
+        }
+        
+        .code-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #2d2d42;
+            padding: 0.5rem 1rem;
+            border-top-left-radius: 5px;
+            border-top-right-radius: 5px;
+        }
+        
+        .code-header h3 {
+            margin: 0;
+            color: #c3e8ff;
+        }
+        
+        pre {
+            padding: 1rem;
+            overflow-x: auto;
+            background-color: #191927;
+            border-bottom-left-radius: 5px;
+            border-bottom-right-radius: 5px;
+            margin: 0;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        
+        code {
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            color: #d0d0e0;
+        }
+        
+        .copy-indicator {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 3px;
+            display: none;
+        }
+        
+        .highlight {
+            background-color: #ffff0022;
+            padding: 0 2px;
+        }
+        
+        .success-msg {
+            background-color: #79dcaa;
+            color: #242436;
+            padding: 0.8rem;
+            text-align: center;
+            border-radius: 5px;
+            margin-bottom: 1rem;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Roblox Key System Editor</h1>
+        
+        <div id="successMessage" class="success-msg">
+            Script successfully updated!
+        </div>
+        
+        <div class="input-group">
+            <label for="keyInput">Key (will replace "Syfer-eng"):</label>
+            <input type="text" id="keyInput" placeholder="Enter your key here...">
+        </div>
+        
+        <div class="input-group">
+            <label for="scriptUrlInput">Script URL (will replace "Text" in loadstring):</label>
+            <input type="text" id="scriptUrlInput" placeholder="Enter your script URL here...">
+        </div>
+        
+        <div class="button-group">
+            <button id="updateBtn" class="update-btn">Update Script</button>
+            <button id="copyBtn" class="copy-btn">Copy Script</button>
+        </div>
+        
+        <div class="code-container">
+            <div class="code-header">
+                <h3>Generated Script</h3>
+            </div>
+            <pre><code id="scriptCode">Loading script...</code></pre>
+            <div id="copyIndicator" class="copy-indicator">Copied!</div>
+        </div>
+    </div>
+    
+    <script>
+        // Original Lua script
+        const originalScript = `-- KeySystem.lua
+-- Full consolidated key system script
+-- Key: Syfer-eng
+-- Usage: loadstring(game:HttpGet("Text",true))()
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+-- The valid key
+local VALID_KEY = "Syfer-eng"
+
+-- Initialize environment setup
+local function setupEnvironment()
+    local player = Players.LocalPlayer
+    local playerGui = player:WaitForChild("PlayerGui")
+    
+    -- Create necessary RemoteEvents if they don't exist
+    if not ReplicatedStorage:FindFirstChild("KeySystem") then
+        local keySystemFolder = Instance.new("Folder")
+        keySystemFolder.Name = "KeySystem"
+        keySystemFolder.Parent = ReplicatedStorage
+        
+        local validateKeyEvent = Instance.new("RemoteEvent")
+        validateKeyEvent.Name = "ValidateKey"
+        validateKeyEvent.Parent = keySystemFolder
+        
+        local keyValidatedEvent = Instance.new("RemoteEvent")
+        keyValidatedEvent.Name = "KeyValidated"
+        keyValidatedEvent.Parent = keySystemFolder
+    end
+    
+    local KeySystemFolder = ReplicatedStorage:WaitForChild("KeySystem")
+    local ValidateKeyEvent = KeySystemFolder:WaitForChild("ValidateKey")
+    local KeyValidated = KeySystemFolder:WaitForChild("KeyValidated")
+    
+    return player, playerGui, ValidateKeyEvent, KeyValidated
+end
+
+-- Create the UI
+local function createUI(playerGui)
+    -- Remove existing UI if it exists
+    if playerGui:FindFirstChild("KeySystemGui") then
+        playerGui.KeySystemGui:Destroy()
+    end
+    
+    -- Create the UI
+    local keySystemGui = Instance.new("ScreenGui")
+    keySystemGui.Name = "KeySystemGui"
+    keySystemGui.ResetOnSpawn = false
+    keySystemGui.Parent = playerGui
+    
+    -- Create the main frame
+    local mainFrame = Instance.new("Frame")
+    mainFrame.Name = "MainFrame"
+    mainFrame.Size = UDim2.new(0, 400, 0, 250)
+    mainFrame.Position = UDim2.new(0.5, -200, 0.5, -125)
+    mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+    mainFrame.BorderSizePixel = 0
+    mainFrame.Parent = keySystemGui
+    
+    -- Add corner radius to the main frame
+    local cornerRadius = Instance.new("UICorner")
+    cornerRadius.CornerRadius = UDim.new(0, 10)
+    cornerRadius.Parent = mainFrame
+    
+    -- Create a shadow effect
+    local shadowFrame = Instance.new("Frame")
+    shadowFrame.Name = "Shadow"
+    shadowFrame.Size = UDim2.new(1, 10, 1, 10)
+    shadowFrame.Position = UDim2.new(0, -5, 0, -5)
+    shadowFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    shadowFrame.BackgroundTransparency = 0.6
+    shadowFrame.BorderSizePixel = 0
+    shadowFrame.ZIndex = -1
+    shadowFrame.Parent = mainFrame
+    
+    local shadowCorner = Instance.new("UICorner")
+    shadowCorner.CornerRadius = UDim.new(0, 12)
+    shadowCorner.Parent = shadowFrame
+    
+    -- Create title label
+    local titleLabel = Instance.new("TextLabel")
+    titleLabel.Name = "TitleLabel"
+    titleLabel.Size = UDim2.new(1, 0, 0, 50)
+    titleLabel.Position = UDim2.new(0, 0, 0, 10)
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.Font = Enum.Font.GothamBold
+    titleLabel.Text = "KEY SYSTEM"
+    titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    titleLabel.TextSize = 24
+    titleLabel.Parent = mainFrame
+    
+    -- Create a subtitle
+    local subtitleLabel = Instance.new("TextLabel")
+    subtitleLabel.Name = "SubtitleLabel"
+    subtitleLabel.Size = UDim2.new(1, 0, 0, 20)
+    subtitleLabel.Position = UDim2.new(0, 0, 0, 50)
+    subtitleLabel.BackgroundTransparency = 1
+    subtitleLabel.Font = Enum.Font.Gotham
+    subtitleLabel.Text = "Enter your key to continue"
+    subtitleLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+    subtitleLabel.TextSize = 14
+    subtitleLabel.Parent = mainFrame
+    
+    -- Create key input box
+    local keyInput = Instance.new("TextBox")
+    keyInput.Name = "KeyInput"
+    keyInput.Size = UDim2.new(0.8, 0, 0, 40)
+    keyInput.Position = UDim2.new(0.1, 0, 0.5, -20)
+    keyInput.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+    keyInput.BorderSizePixel = 0
+    keyInput.Font = Enum.Font.Gotham
+    keyInput.PlaceholderText = "Enter key here..."
+    keyInput.Text = ""
+    keyInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+    keyInput.TextSize = 16
+    keyInput.ClearTextOnFocus = false
+    keyInput.Parent = mainFrame
+    
+    -- Add corner radius to the input box
+    local inputCorner = Instance.new("UICorner")
+    inputCorner.CornerRadius = UDim.new(0, 6)
+    inputCorner.Parent = keyInput
+    
+    -- Create submit button
+    local submitButton = Instance.new("TextButton")
+    submitButton.Name = "SubmitButton"
+    submitButton.Size = UDim2.new(0.5, 0, 0, 40)
+    submitButton.Position = UDim2.new(0.25, 0, 0.7, 0)
+    submitButton.BackgroundColor3 = Color3.fromRGB(70, 120, 255)
+    submitButton.BorderSizePixel = 0
+    submitButton.Font = Enum.Font.GothamBold
+    submitButton.Text = "VALIDATE"
+    submitButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    submitButton.TextSize = 16
+    submitButton.AutoButtonColor = false -- We'll handle hover effects manually
+    submitButton.Parent = mainFrame
+    
+    -- Add corner radius to the button
+    local buttonCorner = Instance.new("UICorner")
+    buttonCorner.CornerRadius = UDim.new(0, 6)
+    buttonCorner.Parent = submitButton
+    
+    -- Create status label
+    local statusLabel = Instance.new("TextLabel")
+    statusLabel.Name = "StatusLabel"
+    statusLabel.Size = UDim2.new(1, 0, 0, 20)
+    statusLabel.Position = UDim2.new(0, 0, 0.9, 0)
+    statusLabel.BackgroundTransparency = 1
+    statusLabel.Font = Enum.Font.Gotham
+    statusLabel.Text = ""
+    statusLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+    statusLabel.TextSize = 14
+    statusLabel.Parent = mainFrame
+    
+    -- Create particle effects container
+    local particleContainer = Instance.new("Frame")
+    particleContainer.Name = "ParticleContainer"
+    particleContainer.Size = UDim2.new(1, 0, 1, 0)
+    particleContainer.BackgroundTransparency = 1
+    particleContainer.ClipsDescendants = true
+    particleContainer.Parent = mainFrame
+    
+    -- Create a loading spinner
+    local loadingSpinner = Instance.new("Frame")
+    loadingSpinner.Name = "LoadingSpinner"
+    loadingSpinner.Size = UDim2.new(0, 40, 0, 40)
+    loadingSpinner.Position = UDim2.new(0.5, -20, 0.5, -20)
+    loadingSpinner.BackgroundTransparency = 1
+    loadingSpinner.Visible = false
+    loadingSpinner.Parent = mainFrame
+    
+    -- Create the spinner ring with enhanced visual elements
+    local spinnerRing = Instance.new("ImageLabel")
+    spinnerRing.Name = "SpinnerRing"
+    spinnerRing.Size = UDim2.new(1, 0, 1, 0)
+    spinnerRing.BackgroundTransparency = 1
+    spinnerRing.Image = "rbxassetid://4965945816" -- This is a loading circle asset
+    spinnerRing.Parent = loadingSpinner
+    
+    -- Create an inner spinner for more complex animation
+    local innerSpinner = Instance.new("ImageLabel")
+    innerSpinner.Name = "InnerSpinner"
+    innerSpinner.Size = UDim2.new(0.7, 0, 0.7, 0)
+    innerSpinner.Position = UDim2.new(0.15, 0, 0.15, 0)
+    innerSpinner.BackgroundTransparency = 1
+    innerSpinner.Image = "rbxassetid://4965945816" -- Same image but will rotate differently
+    innerSpinner.ImageColor3 = Color3.fromRGB(100, 200, 255) -- Different color
+    innerSpinner.Parent = loadingSpinner
+    
+    -- Add a pulsing effect in the center
+    local pulseCircle = Instance.new("Frame")
+    pulseCircle.Name = "PulseCircle"
+    pulseCircle.Size = UDim2.new(0.4, 0, 0.4, 0)
+    pulseCircle.Position = UDim2.new(0.3, 0, 0.3, 0)
+    pulseCircle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    pulseCircle.BackgroundTransparency = 0.5
+    pulseCircle.Parent = loadingSpinner
+    
+    local pulseCorner = Instance.new("UICorner")
+    pulseCorner.CornerRadius = UDim.new(1, 0) -- Make it a circle
+    pulseCorner.Parent = pulseCircle
+    
+    return {
+        gui = keySystemGui,
+        mainFrame = mainFrame,
+        keyInput = keyInput,
+        submitButton = submitButton,
+        statusLabel = statusLabel,
+        particleContainer = particleContainer,
+        loadingSpinner = loadingSpinner,
+        spinnerRing = spinnerRing,
+        innerSpinner = innerSpinner,
+        pulseCircle = pulseCircle
+    }
+end
+
+-- Animation functions for visual effects
+local function createParticle(particleContainer)
+    local particle = Instance.new("Frame")
+    particle.BackgroundColor3 = Color3.fromRGB(
+        math.random(100, 255),
+        math.random(100, 255),
+        math.random(255, 255)
+    )
+    particle.BorderSizePixel = 0
+    particle.Size = UDim2.new(0, math.random(2, 5), 0, math.random(2, 5))
+    
+    local posX = math.random(0, 400)
+    local posY = math.random(0, 250)
+    particle.Position = UDim2.new(0, posX, 0, posY)
+    
+    -- Add transparency and corner
+    particle.BackgroundTransparency = 0.7
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(1, 0)
+    corner.Parent = particle
+    
+    particle.Parent = particleContainer
+    
+    -- Animate the particle
+    local duration = math.random(15, 30) / 10
+    local info = TweenInfo.new(
+        duration,
+        Enum.EasingStyle.Sine,
+        Enum.EasingDirection.Out
+    )
+    
+    local goal = {
+        Position = UDim2.new(0, posX + math.random(-50, 50), 0, posY - math.random(30, 100)),
+        BackgroundTransparency = 1
+    }
+    
+    local tween = TweenService:Create(particle, info, goal)
+    tween:Play()
+    
+    tween.Completed:Connect(function()
+        particle:Destroy()
+    end)
+end
+
+-- Function to create enhanced spinning loading effect with multiple animations
+local function startLoadingAnimation(ui, particleContainer)
+    ui.loadingSpinner.Visible = true
+    
+    -- Rotate the spinner rings in opposite directions
+    local outerRotation = 0
+    local innerRotation = 0
+    local pulseSize = 0.4
+    local growing = true
+    
+    local connection
+    connection = RunService.RenderStepped:Connect(function(deltaTime)
+        -- Rotate outer ring clockwise
+        outerRotation = outerRotation + 300 * deltaTime -- 300 degrees per second
+        ui.spinnerRing.Rotation = outerRotation
+        
+        -- Rotate inner ring counter-clockwise at a different speed
+        innerRotation = innerRotation - 400 * deltaTime -- 400 degrees per second
+        ui.innerSpinner.Rotation = innerRotation
+        
+        -- Pulse the center circle
+        if growing then
+            pulseSize = pulseSize + 0.15 * deltaTime
+            if pulseSize >= 0.5 then
+                growing = false
+            end
+        else
+            pulseSize = pulseSize - 0.15 * deltaTime
+            if pulseSize <= 0.3 then
+                growing = true
+            end
+        end
+        
+        ui.pulseCircle.Size = UDim2.new(pulseSize, 0, pulseSize, 0)
+        ui.pulseCircle.Position = UDim2.new(0.5 - pulseSize/2, 0, 0.5 - pulseSize/2, 0)
+        
+        -- Create occasional particles for added visual interest during loading
+        if math.random(1, 100) <= 5 then -- 5% chance per frame
+            createParticle(particleContainer)
+        end
+        
+        -- Rainbow color effect on the pulse circle
+        local hue = (os.time() * 100) % 360 -- Cycle through hues
+        ui.pulseCircle.BackgroundColor3 = Color3.fromHSV(hue/360, 0.7, 1)
+        
+        if not ui.loadingSpinner.Visible then
+            connection:Disconnect()
+        end
+    end)
+    
+    return connection
+end
+
+local function stopLoadingAnimation(ui)
+    -- Add a brief animation before hiding
+    local fadeOut = TweenService:Create(
+        ui.loadingSpinner,
+        TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+        {Size = UDim2.new(1.5, 0, 1.5, 0), BackgroundTransparency = 1}
+    )
+    fadeOut:Play()
+    
+    fadeOut.Completed:Connect(function()
+        ui.loadingSpinner.Visible = false
+        -- Reset size
+        ui.loadingSpinner.Size = UDim2.new(0, 40, 0, 40)
+    end)
+end
+
+-- Function to create success particles
+local function createSuccessParticles(particleContainer)
+    for i = 1, 50 do
+        local particle = Instance.new("Frame")
+        particle.BackgroundColor3 = Color3.fromRGB(
+            math.random(50, 150),
+            math.random(200, 255),
+            math.random(50, 150)
+        )
+        particle.BorderSizePixel = 0
+        particle.Size = UDim2.new(0, math.random(3, 8), 0, math.random(3, 8))
+        
+        -- Start from center
+        particle.Position = UDim2.new(0.5, 0, 0.5, 0)
+        
+        -- Add transparency and corner
+        particle.BackgroundTransparency = 0.1
+        local corner = Instance.new("UICorner")
+        corner.CornerRadius = UDim.new(1, 0)
+        corner.Parent = particle
+        
+        particle.Parent = particleContainer
+        
+        -- Animate the particle
+        local duration = math.random(10, 20) / 10
+        local info = TweenInfo.new(
+            duration,
+            Enum.EasingStyle.Back,
+            Enum.EasingDirection.Out
+        )
+        
+        local angle = math.rad(math.random(0, 360))
+        local distance = math.random(100, 200)
+        local goalPosX = math.cos(angle) * distance
+        local goalPosY = math.sin(angle) * distance
+        
+        local goal = {
+            Position = UDim2.new(0.5, goalPosX, 0.5, goalPosY),
+            BackgroundTransparency = 1
+        }
+        
+        local tween = TweenService:Create(particle, info, goal)
+        tween:Play()
+        
+        tween.Completed:Connect(function()
+            particle:Destroy()
+        end)
+    end
+end
+
+-- Function to create error particles
+local function createErrorParticles(particleContainer)
+    for i = 1, 30 do
+        local particle = Instance.new("Frame")
+        particle.BackgroundColor3 = Color3.fromRGB(
+            math.random(200, 255),
+            math.random(50, 100),
+            math.random(50, 100)
+        )
+        particle.BorderSizePixel = 0
+        particle.Size = UDim2.new(0, math.random(3, 8), 0, math.random(3, 8))
+        
+        -- Random position
+        particle.Position = UDim2.new(math.random(), 0, math.random(), 0)
+        
+        -- Add transparency and corner
+        particle.BackgroundTransparency = 0.3
+        local corner = Instance.new("UICorner")
+        corner.CornerRadius = UDim.new(1, 0)
+        corner.Parent = particle
+        
+        particle.Parent = particleContainer
+        
+        -- Shake and fade animation
+        local duration = math.random(5, 15) / 10
+        local info = TweenInfo.new(
+            duration,
+            Enum.EasingStyle.Elastic,
+            Enum.EasingDirection.Out
+        )
+        
+        local startPosX = particle.Position.X.Scale
+        local startPosY = particle.Position.Y.Scale
+        
+        local goal = {
+            Position = UDim2.new(
+                startPosX + math.random(-10, 10) / 100,
+                0,
+                startPosY + math.random(-10, 10) / 100,
+                0
+            ),
+            BackgroundTransparency = 1
+        }
+        
+        local tween = TweenService:Create(particle, info, goal)
+        tween:Play()
+        
+        tween.Completed:Connect(function()
+            particle:Destroy()
+        end)
+    end
+end
+
+-- Button effects
+local function setupButtonEffects(ui)
+    -- Button hover effect
+    ui.submitButton.MouseEnter:Connect(function()
+        TweenService:Create(
+            ui.submitButton,
+            TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+            {BackgroundColor3 = Color3.fromRGB(90, 140, 255)}
+        ):Play()
+    end)
+    
+    ui.submitButton.MouseLeave:Connect(function()
+        TweenService:Create(
+            ui.submitButton,
+            TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+            {BackgroundColor3 = Color3.fromRGB(70, 120, 255)}
+        ):Play()
+    end)
+    
+    -- Button click effect
+    ui.submitButton.MouseButton1Down:Connect(function()
+        TweenService:Create(
+            ui.submitButton,
+            TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+            {Size = UDim2.new(0.48, 0, 0, 38), Position = UDim2.new(0.26, 0, 0.701, 0)}
+        ):Play()
+    end)
+    
+    ui.submitButton.MouseButton1Up:Connect(function()
+        TweenService:Create(
+            ui.submitButton,
+            TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+            {Size = UDim2.new(0.5, 0, 0, 40), Position = UDim2.new(0.25, 0, 0.7, 0)}
+        ):Play()
+    end)
+end
+
+-- Main key system setup function
+local function setupKeySystem()
+    local player, playerGui, ValidateKeyEvent, KeyValidated = setupEnvironment()
+    local ui = createUI(playerGui)
+    
+    -- Setup button effects
+    setupButtonEffects(ui)
+    
+    -- Loading animation connection holder
+    local loadingConnection = nil
+    
+    -- Handle submit button click
+    ui.submitButton.MouseButton1Click:Connect(function()
+        local keyText = ui.keyInput.Text
+        
+        -- Don't do anything if the key is empty
+        if keyText == "" then
+            ui.statusLabel.Text = "Please enter a key"
+            ui.statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+            createErrorParticles(ui.particleContainer)
+            return
+        end
+        
+        -- Hide UI elements and show loading spinner
+        ui.keyInput.Visible = false
+        ui.submitButton.Visible = false
+        loadingConnection = startLoadingAnimation(ui, ui.particleContainer)
+        
+        -- Simulate a server response with a slight delay
+        wait(1.5)  -- Simulate network delay
+        
+        -- Validate the key (in this version we do it locally)
+        local isValid = (keyText == VALID_KEY)
+        
+        -- Hide loading spinner
+        stopLoadingAnimation(ui)
+        
+        if loadingConnection then
+            loadingConnection:Disconnect()
+            loadingConnection = nil
+        end
+        
+        -- Show result
+        if isValid then
+            -- Success
+            ui.statusLabel.Text = "Key validated successfully!"
+            ui.statusLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
+            createSuccessParticles(ui.particleContainer)
+            
+            -- Handle successful validation - fire the KeyValidated event
+            KeyValidated:FireServer(true)
+            
+            -- Execute the script from loadstring after successful validation
+            pcall(function()
+                loadstring(game:HttpGet("Text",true))()
+            end)
+            
+            -- Close the UI after a delay
+            wait(2)
+            
+            -- Fade out animation for the main frame
+            TweenService:Create(
+                ui.mainFrame,
+                TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+                {BackgroundTransparency = 1, Position = UDim2.new(0.5, -200, 0.6, -125)}
+            ):Play()
+            
+            -- Fade out all children of the main frame
+            for _, child in pairs(ui.mainFrame:GetDescendants()) do
+                if child:IsA("GuiObject") and child.BackgroundTransparency < 1 then
+                    TweenService:Create(
+                        child,
+                        TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+                        {BackgroundTransparency = 1}
+                    ):Play()
+                end
+                
+                if child:IsA("TextLabel") or child:IsA("TextButton") or child:IsA("TextBox") then
+                    TweenService:Create(
+                        child,
+                        TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+                        {TextTransparency = 1}
+                    ):Play()
+                end
+                
+                if child:IsA("ImageLabel") then
+                    TweenService:Create(
+                        child,
+                        TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+                        {ImageTransparency = 1}
+                    ):Play()
+                end
+            end
+            
+            wait(0.6)
+            ui.gui:Destroy()
+        else
+            -- Error
+            ui.keyInput.Visible = true
+            ui.submitButton.Visible = true
+            ui.statusLabel.Text = "Invalid key, please try again"
+            ui.statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+            createErrorParticles(ui.particleContainer)
+            
+            -- Shake the input field to indicate error
+            local originalPos = ui.keyInput.Position
+            for i = 1, 5 do
+                ui.keyInput.Position = originalPos + UDim2.new(0, math.random(-5, 5), 0, 0)
+                wait(0.05)
+            end
+            ui.keyInput.Position = originalPos
+            ui.keyInput.Text = ""
+        end
+    end)
+    
+    -- Allow pressing Enter to submit
+    ui.keyInput.FocusLost:Connect(function(enterPressed)
+        if enterPressed then
+            ui.submitButton.MouseButton1Click:Fire()
+        end
+    end)
+    
+    -- Make the GUI draggable
+    local isDragging = false
+    local dragStart
+    local startPos
+    
+    ui.mainFrame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            isDragging = true
+            dragStart = input.Position
+            startPos = ui.mainFrame.Position
+        end
+    end)
+    
+    ui.mainFrame.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            isDragging = false
+        end
+    end)
+    
+    UserInputService.InputChanged:Connect(function(input)
+        if isDragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local delta = input.Position - dragStart
+            ui.mainFrame.Position = UDim2.new(
+                startPos.X.Scale,
+                startPos.X.Offset + delta.X,
+                startPos.Y.Scale,
+                startPos.Y.Offset + delta.Y
+            )
+        end
+    end)
+    
+    -- Set up server-side key validation handler
+    ValidateKeyEvent.OnClientEvent:Connect(function(result)
+        if result == true then
+            -- This would be handled by the button click logic, but included for completeness
+            ui.statusLabel.Text = "Key validated successfully!"
+            ui.statusLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
+            createSuccessParticles(ui.particleContainer)
+        else
+            ui.statusLabel.Text = "Invalid key, please try again"
+            ui.statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+            createErrorParticles(ui.particleContainer)
+        end
+    end)
+    
+    -- Show entry animation
+    ui.mainFrame.Position = UDim2.new(0.5, -200, 0.4, -125)
+    ui.mainFrame.BackgroundTransparency = 1
+    
+    -- Initialize all children as transparent
+    for _, child in pairs(ui.mainFrame:GetDescendants()) do
+        if child:IsA("GuiObject") and not child:IsA("UICorner") then
+            child.BackgroundTransparency = 1
+        end
+        
+        if child:IsA("TextLabel") or child:IsA("TextButton") or child:IsA("TextBox") then
+            child.TextTransparency = 1
+        end
+        
+        if child:IsA("ImageLabel") then
+            child.ImageTransparency = 1
+        end
+    end
+    
+    -- Animate the UI appearing
+    TweenService:Create(
+        ui.mainFrame,
+        TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+        {BackgroundTransparency = 0, Position = UDim2.new(0.5, -200, 0.5, -125)}
+    ):Play()
+    
+    -- Animate each element with a slight delay
+    local children = ui.mainFrame:GetDescendants()
+    table.sort(children, function(a, b)
+        return a:GetFullName() < b:GetFullName()
+    end)
+    
+    for i, child in ipairs(children) do
+        spawn(function()
+            wait(0.1 + (i * 0.05))
+            
+            if child:IsA("GuiObject") and not child:IsA("UICorner") then
+                TweenService:Create(
+                    child,
+                    TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+                    {BackgroundTransparency = child.Name == "LoadingSpinner" and 1 or child.BackgroundTransparency}
+                ):Play()
+            end
+            
+            if child:IsA("TextLabel") or child:IsA("TextButton") or child:IsA("TextBox") then
+                TweenService:Create(
+                    child,
+                    TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+                    {TextTransparency = 0}
+                ):Play()
+            end
+            
+            if child:IsA("ImageLabel") then
+                TweenService:Create(
+                    child,
+                    TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+                    {ImageTransparency = 0}
+                ):Play()
+            end
+        end)
+    end
+    
+    -- Create some initial particles for visual interest
+    for i = 1, 10 do
+        createParticle(ui.particleContainer)
+    end
+    
+    -- Setup server-side script for key validation if it doesn't exist
+    if not game.ServerScriptService:FindFirstChild("KeySystemServer") then
+        local serverScript = Instance.new("Script")
+        serverScript.Name = "KeySystemServer"
+        serverScript.Source = [[
+            -- KeySystemServer.lua
+            -- Server-side validation script
+            
+            local ReplicatedStorage = game:GetService("ReplicatedStorage")
+            local KeySystemFolder = ReplicatedStorage:WaitForChild("KeySystem")
+            local ValidateKeyEvent = KeySystemFolder:WaitForChild("ValidateKey")
+            local KeyValidated = KeySystemFolder:WaitForChild("KeyValidated")
+            
+            -- The valid key - hardcoded for security (same as client for this demo)
+            local VALID_KEY = "Syfer-eng"
+            
+            -- Validate key remote event handler
+            ValidateKeyEvent.OnServerEvent:Connect(function(player, keyInput)
+                -- Simple validation
+                local isValid = (keyInput == VALID_KEY)
+                ValidateKeyEvent:FireClient(player, isValid)
+            end)
+            
+            -- Key validated event for tracking successful validations
+            KeyValidated.OnServerEvent:Connect(function(player, success)
+                if success then
+                    print(player.Name .. " has successfully validated their key")
+                    -- Here you can add additional logic that happens after successful validation
+                    -- For example: 
+                    -- - Grant permissions
+                    -- - Save to DataStore that this player has validated
+                    -- - etc.
+                end
+            end)
+        ]]
+        serverScript.Parent = game.ServerScriptService
+    end
+end
+
+-- Run the key system
+setupKeySystem()
+
+-- Return true to indicate successful execution
+return true`;
+
+        // DOM elements
+        const keyInput = document.getElementById('keyInput');
+        const scriptUrlInput = document.getElementById('scriptUrlInput');
+        const updateBtn = document.getElementById('updateBtn');
+        const copyBtn = document.getElementById('copyBtn');
+        const scriptCode = document.getElementById('scriptCode');
+        const copyIndicator = document.getElementById('copyIndicator');
+        const successMessage = document.getElementById('successMessage');
+        
+        let currentScript = originalScript;
+        
+        // Display the original script
+        displayScript(currentScript);
+        
+        // Update script when button is clicked
+        updateBtn.addEventListener('click', () => {
+            const key = keyInput.value.trim();
+            const scriptUrl = scriptUrlInput.value.trim();
+            
+            if (!key || !scriptUrl) {
+                alert('Please enter both a key and a script URL.');
+                return;
+            }
+            
+            // Update the script
+            let updatedScript = originalScript;
+            
+            // Replace the key
+            updatedScript = updatedScript.replace(/local VALID_KEY = "Syfer-eng"/g, `local VALID_KEY = "${key}"`);
+            
+            // Replace the loadstring URL in the comment
+            updatedScript = updatedScript.replace(
+                /-- Usage: loadstring\(game:HttpGet\("Text",true\)\)\(\)/,
+                `-- Usage: loadstring(game:HttpGet("${scriptUrl}",true))()`
+            );
+            
+            // Replace the loadstring URL in the actual code
+            updatedScript = updatedScript.replace(
+                /loadstring\(game:HttpGet\("Text",true\)\)\(\)/,
+                `loadstring(game:HttpGet("${scriptUrl}",true))()`
+            );
+            
+            currentScript = updatedScript;
+            displayScript(currentScript);
+            
+            // Show success message
+            successMessage.style.display = 'block';
+            setTimeout(() => {
+                successMessage.style.display = 'none';
+            }, 3000);
+        });
+        
+        // Copy script to clipboard
+        copyBtn.addEventListener('click', () => {
+            navigator.clipboard.writeText(currentScript)
+                .then(() => {
+                    // Show copy indicator
+                    copyIndicator.style.display = 'block';
+                    setTimeout(() => {
+                        copyIndicator.style.display = 'none';
+                    }, 2000);
+                })
+                .catch(error => {
+                    console.error('Error copying to clipboard:', error);
+                    alert('Failed to copy to clipboard. Please try again.');
+                });
+        });
+        
+        // Display script with highlighted changes
+        function displayScript(script) {
+            // Escape HTML special characters to prevent XSS
+            const escapedScript = script
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+            
+            // Highlight key and loadstring sections
+            const highlightedScript = escapedScript
+                .replace(/(local VALID_KEY = ".+?")/g, '<span class="highlight">$1</span>')
+                .replace(/(loadstring\(game:HttpGet\(".+?",true\)\)\(\))/g, '<span class="highlight">$1</span>');
+            
+            scriptCode.innerHTML = highlightedScript;
+        }
+    </script>
+</body>
+</html>
