@@ -17,6 +17,38 @@
             min-height: 100vh;
         }
         
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background-color: #0f0f1a;
+            padding: 10px 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+        }
+        
+        .home-btn {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #70a5fd;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 18px;
+            transition: all 0.3s ease;
+        }
+        
+        .home-btn:hover {
+            color: #8ab5ff;
+        }
+        
+        .home-icon {
+            font-size: 24px;
+        }
+        
         .container {
             width: 90%;
             max-width: 1000px;
@@ -162,7 +194,14 @@
     </style>
 </head>
 <body>
-    <div class="container">
+    <div class="header">
+        <a href="https://roblox-menu-thing.github.io" class="home-btn">
+            <span class="home-icon">🏠</span>
+            Home
+        </a>
+    </div>
+    
+    <div class="container" style="margin-top: 60px;">
         <h1>Roblox Key System Editor</h1>
         
         <div id="successMessage" class="success-msg">
