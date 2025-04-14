@@ -22,8 +22,8 @@
             top: 0;
             left: 0;
             width: 100%;
-            background-color: rgba(15, 15, 26, 0.3);  /* 70% transparent */
-            backdrop-filter: blur(5px);  /* Adds a blur effect for better readability */
+            background-color: rgba(15, 15, 26, 0.3);
+            backdrop-filter: blur(5px);
             padding: 10px 20px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
             z-index: 1000;
@@ -182,11 +182,17 @@
             padding: 5px 10px;
             border-radius: 3px;
             display: none;
+            animation: fadeInOut 2s ease-in-out;
         }
         
-        .highlight {
-            background-color: #ffff0022;
-            padding: 0 2px;
+        .error-message {
+            background-color: #ff5757;
+            color: white;
+            padding: 0.8rem;
+            text-align: center;
+            border-radius: 5px;
+            margin-bottom: 1rem;
+            display: none;
         }
         
         .success-msg {
@@ -198,21 +204,65 @@
             margin-bottom: 1rem;
             display: none;
         }
+        
+        .highlight {
+            background-color: rgba(255, 255, 0, 0.15);
+            padding: 0 2px;
+        }
+        
+        /* Custom scrollbar for code block */
+        pre::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        pre::-webkit-scrollbar-track {
+            background: #242436;
+            border-radius: 5px;
+        }
+        
+        pre::-webkit-scrollbar-thumb {
+            background: #444464;
+            border-radius: 5px;
+        }
+        
+        pre::-webkit-scrollbar-thumb:hover {
+            background: #5A5A7A;
+        }
+        
+        /* Animation for copied indicator */
+        @keyframes fadeInOut {
+            0% { opacity: 0; }
+            20% { opacity: 1; }
+            80% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+        
+        .fade-in-out {
+            animation: fadeInOut 2s ease-in-out;
+        }
     </style>
 </head>
 <body>
     <div class="header">
         <a href="https://roblox-menu-thing.github.io" class="home-btn">
-            <span class="home-icon"></span>
+            <svg xmlns="http://www.w3.org/2000/svg" class="home-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                <polyline points="9 22 9 12 15 12 15 22"></polyline>
+            </svg>
             Home
         </a>
     </div>
     
-    <div class="container" style="margin-top: 60px;">
+    <div class="container" style="margin-top: 80px;">
         <h1>Roblox Key System Editor</h1>
         
         <div id="successMessage" class="success-msg">
             Script successfully updated!
+        </div>
+        
+        <div id="errorMessage" class="error-message">
+            Invalid URL format! Please include http:// or https://
         </div>
         
         <div class="input-group">
@@ -222,7 +272,7 @@
         
         <div class="input-group">
             <label for="scriptUrlInput">Script URL (will replace "Text" in loadstring):</label>
-            <input type="text" id="scriptUrlInput" placeholder="Enter your script URL here...">
+            <input type="text" id="scriptUrlInput" placeholder="Enter your script URL here (https://example.com)">
         </div>
         
         <div class="button-group">
@@ -240,7 +290,7 @@
     </div>
     
     <script>
-        // Original Lua script
+        // Original Lua script - full version with all the animations and particle effects
         const originalScript = `-- KeySystem.lua
 -- Full consolidated key system script
 -- Key: Syfer-eng
@@ -1001,37 +1051,49 @@ return true`;
         const scriptCode = document.getElementById('scriptCode');
         const copyIndicator = document.getElementById('copyIndicator');
         const successMessage = document.getElementById('successMessage');
+        const errorMessage = document.getElementById('errorMessage');
         
         let currentScript = originalScript;
         
         // Display the original script
         displayScript(currentScript);
         
+        // Function to validate URL format
+        function validateUrl(url) {
+            if (!url || url === "Text") return true;
+            const urlPattern = /^https?:\/\/.+/i;
+            return urlPattern.test(url);
+        }
+        
         // Update script when button is clicked
         updateBtn.addEventListener('click', () => {
-            const key = keyInput.value.trim();
-            const scriptUrl = scriptUrlInput.value.trim();
+            const key = keyInput.value.trim() || "Syfer-eng";
+            const scriptUrl = scriptUrlInput.value.trim() || "Text";
             
-            if (!key || !scriptUrl) {
-                alert('Please enter both a key and a script URL.');
+            // Validate URL if provided
+            if (scriptUrl !== "Text" && !validateUrl(scriptUrl)) {
+                errorMessage.style.display = 'block';
+                setTimeout(() => {
+                    errorMessage.style.display = 'none';
+                }, 3000);
                 return;
             }
             
             // Update the script
             let updatedScript = originalScript;
             
-            // Replace the key
+            // Replace the key in both places
+            updatedScript = updatedScript.replace(/-- Key: Syfer-eng/, `-- Key: ${key}`);
             updatedScript = updatedScript.replace(/local VALID_KEY = "Syfer-eng"/g, `local VALID_KEY = "${key}"`);
             
-            // Replace the loadstring URL in the comment
+            // Replace the URL in loadstring - both in the comment and in the actual code
             updatedScript = updatedScript.replace(
                 /-- Usage: loadstring\(game:HttpGet\("Text",true\)\)\(\)/,
                 `-- Usage: loadstring(game:HttpGet("${scriptUrl}",true))()`
             );
             
-            // Replace the loadstring URL in the actual code
             updatedScript = updatedScript.replace(
-                /loadstring\(game:HttpGet\("Text",true\)\)\(\)/,
+                /loadstring\(game:HttpGet\("Text",true\)\)\(\)/g,
                 `loadstring(game:HttpGet("${scriptUrl}",true))()`
             );
             
@@ -1072,7 +1134,9 @@ return true`;
             // Highlight key and loadstring sections
             const highlightedScript = escapedScript
                 .replace(/(local VALID_KEY = ".+?")/g, '<span class="highlight">$1</span>')
-                .replace(/(loadstring\(game:HttpGet\(".+?",true\)\)\(\))/g, '<span class="highlight">$1</span>');
+                .replace(/(loadstring\(game:HttpGet\(".+?",true\)\)\(\))/g, '<span class="highlight">$1</span>')
+                .replace(/(-- Key: .+?)\n/g, '<span class="highlight">$1</span>\n')
+                .replace(/(-- Usage: loadstring\(game:HttpGet\(".+?",true\)\)\(\))/g, '<span class="highlight">$1</span>');
             
             scriptCode.innerHTML = highlightedScript;
         }
