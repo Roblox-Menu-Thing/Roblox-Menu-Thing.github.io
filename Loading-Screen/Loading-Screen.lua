@@ -1,0 +1,1216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NightFall Generator - Roblox Loading Screen Customizer</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Syntax highlighting -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-lua.min.js"></script>
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+    /* Custom CSS */
+    :root {
+      --primary: #5A00FF;
+      --accent-blue: #00AAFF;
+      --bg-dark: #0A0A0F;
+      --text-light: #FFFFFF;
+      --text-muted: #B4B4B4;
+      --success: #00FFAA;
+      --warning: #FFC800;
+      --error: #FF3232;
+      --card-bg: rgb(20, 20, 30);
+      --border-color: rgba(80, 80, 100, 0.3);
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      background-color: var(--bg-dark);
+      color: var(--text-light);
+    }
+
+    .card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 0.5rem;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .btn-primary {
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 0.375rem;
+      padding: 0.5rem 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      transition: background-color 0.2s;
+    }
+
+    .btn-primary:hover {
+      background-color: rgba(90, 0, 255, 0.9);
+    }
+
+    .btn-outline {
+      background-color: transparent;
+      color: var(--text-light);
+      border: 1px solid var(--border-color);
+      border-radius: 0.375rem;
+      padding: 0.5rem 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      transition: background-color 0.2s;
+    }
+
+    .btn-outline:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .btn-blue {
+      background-color: var(--accent-blue);
+      color: white;
+    }
+
+    .btn-blue:hover {
+      background-color: rgba(0, 170, 255, 0.9);
+    }
+
+    label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+      color: var(--text-light);
+    }
+
+    input[type="text"],
+    input[type="number"] {
+      width: 100%;
+      padding: 0.5rem;
+      border-radius: 0.375rem;
+      border: 1px solid var(--border-color);
+      background-color: rgba(30, 30, 40, 0.8);
+      color: var(--text-light);
+      font-size: 0.875rem;
+    }
+
+    input[type="color"] {
+      -webkit-appearance: none;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      height: 40px;
+      width: 40px;
+      padding: 0;
+    }
+
+    input[type="color"]::-webkit-color-swatch-wrapper {
+      padding: 0;
+    }
+
+    input[type="color"]::-webkit-color-swatch {
+      border: none;
+      border-radius: 4px;
+    }
+
+    .flex-color-input {
+      display: flex;
+      align-items: center;
+    }
+
+    .color-text-input {
+      margin-left: 0.5rem;
+      width: calc(100% - 50px);
+    }
+
+    .gradient-text {
+      background: linear-gradient(90deg, var(--primary), var(--accent-blue));
+      -webkit-background-clip: text;
+      color: transparent;
+      display: inline;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      padding: 10px 15px;
+      background-color: var(--success);
+      color: white;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+      z-index: 100;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.3s, transform 0.3s;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .toast i {
+      margin-right: 8px;
+    }
+
+    .code-output {
+      position: relative;
+      overflow: hidden;
+      border-radius: 0.5rem;
+    }
+
+    .code-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background-color: rgba(30, 30, 40, 0.9);
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    pre {
+      margin: 0 !important;
+      padding: 1rem !important;
+      max-height: 500px;
+      overflow: auto;
+    }
+
+    code {
+      font-family: 'Fira Code', monospace !important;
+      font-size: 0.875rem !important;
+    }
+
+    /* Animation styles */
+    @keyframes fill {
+      from { width: 0; }
+      to { width: 100%; }
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .separator {
+      height: 1px;
+      width: 100%;
+      background-color: var(--border-color);
+      margin: 1.5rem 0;
+    }
+
+    /* Advanced settings toggle */
+    .advanced-header {
+      cursor: pointer;
+      user-select: none;
+    }
+
+    /* Loading bar styles */
+    .loading-bar-bg {
+      height: 5px;
+      background-color: rgba(30, 30, 35, 1);
+      border-radius: 9999px;
+      overflow: hidden;
+    }
+
+    .loading-bar-fill {
+      height: 100%;
+      background-color: var(--primary);
+      border-radius: 9999px;
+      width: 0%;
+    }
+
+    /* Responsive grid */
+    @media (min-width: 768px) {
+      .grid-cols-2 {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+      }
+    }
+
+    @media (max-width: 767px) {
+      .preview-container {
+        height: 250px !important;
+      }
+    }
+    
+    /* Status text section */
+    .status-text-section {
+      border-left: 2px solid var(--primary);
+      padding-left: 0.75rem;
+      margin-top: 1rem;
+    }
+    
+    .status-text-section h4 {
+      color: var(--text-light);
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+    }
+  </style>
+</head>
+<body class="min-h-screen">
+  <!-- Header -->
+  <header class="border-b border-gray-800 bg-opacity-70 bg-black">
+    <div class="container mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center">
+      <div class="flex items-center mb-4 md:mb-0">
+        <div class="bg-primary w-10 h-10 rounded flex items-center justify-center mr-3">
+          <i class="fas fa-code text-white"></i>
+        </div>
+        <div>
+          <h1 class="text-xl font-bold">
+            NightFall<span class="text-blue-400">Generator</span>
+          </h1>
+          <p class="text-gray-400 text-sm">Roblox Loading Screen Customizer</p>
+        </div>
+      </div>
+      
+      <div class="flex space-x-4">
+        <button id="saveBtn" class="btn-outline">
+          <i class="fas fa-save mr-2"></i>
+          Save Preset
+        </button>
+        
+        <button id="resetBtn" class="btn-outline">
+          <i class="fas fa-undo mr-2"></i>
+          Reset
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container mx-auto px-4 py-8">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- Left column - Configuration -->
+      <div>
+        <!-- Configuration Panel -->
+        <div class="card">
+          <div class="mb-4">
+            <h2 class="text-xl font-bold mb-1">Script Configuration</h2>
+            <p class="text-gray-400">Customize your loading screen</p>
+          </div>
+          
+          <form id="configForm" class="space-y-8">
+            <!-- Basic Settings -->
+            <div>
+              <h3 class="text-md font-semibold mb-4 text-blue-400">Basic Settings</h3>
+              
+              <div class="space-y-4">
+                <div>
+                  <label for="title">Title</label>
+                  <input type="text" id="title" name="title" value="NightFall">
+                </div>
+                
+                <div>
+                  <label for="version">Version</label>
+                  <input type="text" id="version" name="version" value="v1.0">
+                </div>
+                
+                <div>
+                  <label for="loadingDuration">Loading Duration (seconds)</label>
+                  <input type="number" id="loadingDuration" name="loadingDuration" min="0.5" max="10" step="0.1" value="2.5">
+                </div>
+                
+                <!-- Status Text Section -->
+                <div class="status-text-section">
+                  <h4>Status Messages</h4>
+                  <div class="space-y-3 mt-3">
+                    <div>
+                      <label for="statusText1">Initial Status</label>
+                      <input type="text" id="statusText1" name="statusText1" value="Initializing systems...">
+                    </div>
+                    
+                    <div>
+                      <label for="statusText2">Second Status</label>
+                      <input type="text" id="statusText2" name="statusText2" value="Checking environment...">
+                    </div>
+                    
+                    <div>
+                      <label for="statusText3">Third Status</label>
+                      <input type="text" id="statusText3" name="statusText3" value="Loading modules...">
+                    </div>
+                    
+                    <div>
+                      <label for="statusText4">Final Status</label>
+                      <input type="text" id="statusText4" name="statusText4" value="Ready to engage...">
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="separator"></div>
+            
+            <!-- Color Theme -->
+            <div>
+              <h3 class="text-md font-semibold mb-4 text-blue-400">Color Theme</h3>
+              
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label for="bgColor">Background</label>
+                  <div class="flex-color-input">
+                    <input type="color" id="bgColor" name="bgColor" value="#0A0A0F">
+                    <input type="text" class="color-text-input" id="bgColorText" value="#0A0A0F" readonly>
+                  </div>
+                </div>
+                
+                <div>
+                  <label for="accent1Color">Accent 1 (Purple)</label>
+                  <div class="flex-color-input">
+                    <input type="color" id="accent1Color" name="accent1Color" value="#5A00FF">
+                    <input type="text" class="color-text-input" id="accent1ColorText" value="#5A00FF" readonly>
+                  </div>
+                </div>
+                
+                <div>
+                  <label for="accent2Color">Accent 2 (Blue)</label>
+                  <div class="flex-color-input">
+                    <input type="color" id="accent2Color" name="accent2Color" value="#00AAFF">
+                    <input type="text" class="color-text-input" id="accent2ColorText" value="#00AAFF" readonly>
+                  </div>
+                </div>
+                
+                <div>
+                  <label for="textColor">Text</label>
+                  <div class="flex-color-input">
+                    <input type="color" id="textColor" name="textColor" value="#FFFFFF">
+                    <input type="text" class="color-text-input" id="textColorText" value="#FFFFFF" readonly>
+                  </div>
+                </div>
+                
+                <div>
+                  <label for="subtextColor">Subtext</label>
+                  <div class="flex-color-input">
+                    <input type="color" id="subtextColor" name="subtextColor" value="#B4B4B4">
+                    <input type="text" class="color-text-input" id="subtextColorText" value="#B4B4B4" readonly>
+                  </div>
+                </div>
+                
+                <div>
+                  <label for="successColor">Success</label>
+                  <div class="flex-color-input">
+                    <input type="color" id="successColor" name="successColor" value="#00FFAA">
+                    <input type="text" class="color-text-input" id="successColorText" value="#00FFAA" readonly>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="separator"></div>
+            
+            <!-- Advanced Settings -->
+            <div>
+              <div class="flex items-center justify-between advanced-header" id="advancedHeader">
+                <h3 class="text-md font-semibold text-blue-400">Advanced Settings</h3>
+                <button type="button" class="text-gray-400 text-sm flex items-center">
+                  <i class="fas fa-chevron-down mr-1" id="advancedIcon"></i>
+                  <span id="advancedToggleText">Show</span>
+                </button>
+              </div>
+              
+              <div id="advancedSettings" class="mt-4 space-y-4 hidden">
+                <div>
+                  <label for="loadingBarHeight">Loading Bar Height (px)</label>
+                  <input type="number" id="loadingBarHeight" name="loadingBarHeight" min="1" max="20" value="5">
+                </div>
+                
+                <div>
+                  <label for="loadingBarWidth">Loading Bar Width (%)</label>
+                  <input type="number" id="loadingBarWidth" name="loadingBarWidth" min="10" max="80" value="30">
+                </div>
+                
+                <div>
+                  <label for="fontSize">Title Font Size</label>
+                  <input type="number" id="fontSize" name="fontSize" min="20" max="100" value="55">
+                </div>
+              </div>
+            </div>
+            
+            <div class="separator"></div>
+            
+            <!-- External Script URL -->
+            <div>
+              <label for="scriptUrl">External Script URL (optional)</label>
+              <input type="text" id="scriptUrl" name="scriptUrl" placeholder="https://your-script-url.com/script.lua">
+            </div>
+          </form>
+        </div>
+      </div>
+      
+      <!-- Right column - Preview & Code Output -->
+      <div>
+        <!-- Preview Card -->
+        <div class="card">
+          <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xl font-bold">Visual Preview</h2>
+            <span id="themeIndicator" class="px-2 py-1 text-xs border border-gray-700 rounded">Dark Theme</span>
+          </div>
+          
+          <div id="previewContainer" class="w-full h-80 rounded-lg flex flex-col items-center justify-center relative overflow-hidden border border-gray-800 preview-container" style="background-color: #0A0A0F;">
+            <!-- Loading Screen Preview -->
+            <h2 id="previewTitle" class="text-4xl font-bold mb-1" style="color: #FFFFFF; font-size: 28px;">
+              NightFall
+            </h2>
+            
+            <p id="previewVersion" class="text-sm mb-6" style="color: #B4B4B4;">
+              v1.0
+            </p>
+            
+            <div id="previewLoadingBarBg" class="rounded-full mb-4" style="width: 30%; height: 5px; background-color: rgba(30, 30, 35, 1);">
+              <div id="previewLoadingBarFill" class="h-full rounded-full" style="width: 0%; background-color: #5A00FF;"></div>
+            </div>
+            
+            <p id="previewStatus" class="text-sm" style="color: #B4B4B4;">
+              Initializing systems...
+            </p>
+          </div>
+          
+          <!-- Preview Controls -->
+          <div class="flex justify-between mt-4">
+            <div class="flex flex-wrap gap-4">
+              <button id="animateBtn" class="btn-primary">
+                <i class="fas fa-play mr-2"></i>
+                Animate Preview
+              </button>
+              
+              <button id="toggleThemeBtn" class="btn-outline">
+                <i class="fas fa-sun mr-2"></i>
+                Light Theme
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Code Output Card -->
+        <div class="card mt-6">
+          <div class="code-header">
+            <h2 class="text-xl font-bold">Generated Script</h2>
+            <button id="copyBtn" class="btn-primary bg-blue-500">
+              <i class="fas fa-copy mr-2"></i>
+              Copy Code
+            </button>
+          </div>
+          
+          <div class="code-output">
+            <pre><code id="codeOutput" class="language-lua">-- Loading script will appear here</code></pre>
+          </div>
+          
+          <div class="flex justify-between items-center mt-4 pt-4 border-t border-gray-800">
+            <div class="text-sm text-gray-400">
+              Script length: <span id="scriptSize">0 KB</span>
+            </div>
+            <button id="downloadBtn" class="btn-outline">
+              <i class="fas fa-download mr-2"></i>
+              Download .lua
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Feature Showcase Section -->
+    <div class="mt-16">
+      <h2 class="text-2xl font-bold mb-8 text-center">Make Your Roblox Games Stand Out</h2>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="card">
+          <div class="w-12 h-12 bg-purple-900 bg-opacity-20 rounded-lg flex items-center justify-center mb-4">
+            <i class="fas fa-paint-brush text-purple-500 text-xl"></i>
+          </div>
+          <h3 class="text-lg font-semibold mb-2">Custom Styling</h3>
+          <p class="text-gray-400">Create a unique visual identity for your Roblox game with fully customizable colors and themes.</p>
+        </div>
+        
+        <div class="card">
+          <div class="w-12 h-12 bg-blue-900 bg-opacity-20 rounded-lg flex items-center justify-center mb-4">
+            <i class="fas fa-clock text-blue-500 text-xl"></i>
+          </div>
+          <h3 class="text-lg font-semibold mb-2">Loading Experience</h3>
+          <p class="text-gray-400">Improve player retention with smooth, professional loading screens that keep users engaged.</p>
+        </div>
+        
+        <div class="card">
+          <div class="w-12 h-12 bg-green-900 bg-opacity-20 rounded-lg flex items-center justify-center mb-4">
+            <i class="fas fa-code text-green-500 text-xl"></i>
+          </div>
+          <h3 class="text-lg font-semibold mb-2">Ready-to-Use Code</h3>
+          <p class="text-gray-400">No coding required. Generate working Lua scripts with a few clicks to implement in your game.</p>
+        </div>
+        
+        <div class="card">
+          <div class="w-12 h-12 bg-yellow-900 bg-opacity-20 rounded-lg flex items-center justify-center mb-4">
+            <i class="fas fa-mobile-alt text-yellow-500 text-xl"></i>
+          </div>
+          <h3 class="text-lg font-semibold mb-2">Compatible</h3>
+          <p class="text-gray-400">Works on all Roblox platforms including mobile, PC, and console with responsive design.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Example Gallery Section -->
+    <div class="mt-16">
+      <h2 class="text-2xl font-bold mb-8 text-center">Example Loading Screens</h2>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Sci-Fi Theme -->
+        <div class="card overflow-hidden">
+          <div class="h-48 bg-gray-800 relative">
+            <div class="absolute inset-0 flex flex-col items-center justify-center bg-gray-900 bg-opacity-70">
+              <h3 class="text-2xl font-bold text-white mb-1">SpaceCraft</h3>
+              <p class="text-xs text-gray-300 mb-4">v2.1</p>
+              <div class="w-32 h-1 bg-gray-700 rounded">
+                <div class="h-full bg-blue-500 rounded" style="width: 60%"></div>
+              </div>
+              <p class="mt-2 text-xs text-gray-300">Loading assets...</p>
+            </div>
+          </div>
+          <div class="p-4">
+            <h3 class="font-semibold">Sci-Fi Theme</h3>
+            <p class="text-gray-400 text-sm mt-1">Blue-focused design with space theme for exploration games.</p>
+          </div>
+        </div>
+        
+        <!-- Fantasy Theme -->
+        <div class="card overflow-hidden">
+          <div class="h-48 bg-gray-800 relative">
+            <div class="absolute inset-0 flex flex-col items-center justify-center bg-purple-900 bg-opacity-70">
+              <h3 class="text-2xl font-bold text-purple-300 mb-1">Dragon Quest</h3>
+              <p class="text-xs text-purple-200 mb-4">v1.5</p>
+              <div class="w-32 h-1 bg-gray-700 rounded">
+                <div class="h-full bg-purple-600 rounded" style="width: 40%"></div>
+              </div>
+              <p class="mt-2 text-xs text-purple-200">Summoning dragons...</p>
+            </div>
+          </div>
+          <div class="p-4">
+            <h3 class="font-semibold">Fantasy Theme</h3>
+            <p class="text-gray-400 text-sm mt-1">Purple and gold color scheme for fantasy and adventure games.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="mt-20 bg-black bg-opacity-40 border-t border-gray-800 py-8">
+    <div class="container mx-auto px-4">
+      <div class="flex flex-col md:flex-row justify-between items-center">
+        <div class="mb-4 md:mb-0">
+          <h2 class="text-xl font-bold">
+            NightFall<span class="text-blue-400">Generator</span>
+          </h2>
+          <p class="text-gray-400 text-sm mt-1">Create professional loading screens for Roblox games</p>
+        </div>
+        
+        <div class="flex space-x-6">
+          <a href="#" class="text-gray-400 hover:text-white transition">
+            <i class="fas fa-comment-alt"></i>
+          </a>
+          <a href="https://github.com" class="text-gray-400 hover:text-white transition">
+            <i class="fab fa-github"></i>
+          </a>
+          <a href="https://youtube.com" class="text-gray-400 hover:text-white transition">
+            <i class="fab fa-youtube"></i>
+          </a>
+        </div>
+      </div>
+      
+      <div class="mt-8 pt-6 border-t border-gray-800 flex flex-col md:flex-row justify-between items-center">
+        <p class="text-gray-400 text-sm mb-4 md:mb-0">© 2025 NightFallGenerator. Not affiliated with Roblox Corporation.</p>
+        
+        <div class="flex space-x-6">
+          <a href="#" class="text-gray-400 hover:text-white text-sm transition">Privacy Policy</a>
+          <a href="#" class="text-gray-400 hover:text-white text-sm transition">Terms of Service</a>
+          <a href="#" class="text-gray-400 hover:text-white text-sm transition">Contact</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="toast">
+    <i class="fas fa-check-circle"></i>
+    <span id="toastMessage">Successfully copied to clipboard!</span>
+  </div>
+
+  <script>
+    // Script settings object
+    let scriptSettings = {
+      title: "NightFall",
+      version: "v1.0",
+      loadingDuration: 2.5,
+      bgColor: "#0A0A0F",
+      accent1Color: "#5A00FF",
+      accent2Color: "#00AAFF",
+      textColor: "#FFFFFF",
+      subtextColor: "#B4B4B4",
+      successColor: "#00FFAA",
+      warningColor: "#FFC800",
+      errorColor: "#FF3232",
+      loadingBarHeight: 5,
+      loadingBarWidth: 30,
+      fontSize: 55,
+      scriptUrl: "",
+      statusText1: "Initializing systems...",
+      statusText2: "Checking environment...",
+      statusText3: "Loading modules...",
+      statusText4: "Ready to engage..."
+    };
+
+    // DOM Elements
+    const form = document.getElementById('configForm');
+    const title = document.getElementById('title');
+    const version = document.getElementById('version');
+    const loadingDuration = document.getElementById('loadingDuration');
+    const loadingBarHeight = document.getElementById('loadingBarHeight');
+    const loadingBarWidth = document.getElementById('loadingBarWidth');
+    const fontSize = document.getElementById('fontSize');
+    const scriptUrl = document.getElementById('scriptUrl');
+    
+    // Status text inputs
+    const statusText1 = document.getElementById('statusText1');
+    const statusText2 = document.getElementById('statusText2');
+    const statusText3 = document.getElementById('statusText3');
+    const statusText4 = document.getElementById('statusText4');
+
+    // Color inputs
+    const bgColor = document.getElementById('bgColor');
+    const accent1Color = document.getElementById('accent1Color');
+    const accent2Color = document.getElementById('accent2Color');
+    const textColor = document.getElementById('textColor');
+    const subtextColor = document.getElementById('subtextColor');
+    const successColor = document.getElementById('successColor');
+
+    // Color text inputs
+    const bgColorText = document.getElementById('bgColorText');
+    const accent1ColorText = document.getElementById('accent1ColorText');
+    const accent2ColorText = document.getElementById('accent2ColorText');
+    const textColorText = document.getElementById('textColorText');
+    const subtextColorText = document.getElementById('subtextColorText');
+    const successColorText = document.getElementById('successColorText');
+
+    // Preview elements
+    const previewContainer = document.getElementById('previewContainer');
+    const previewTitle = document.getElementById('previewTitle');
+    const previewVersion = document.getElementById('previewVersion');
+    const previewLoadingBarBg = document.getElementById('previewLoadingBarBg');
+    const previewLoadingBarFill = document.getElementById('previewLoadingBarFill');
+    const previewStatus = document.getElementById('previewStatus');
+    const themeIndicator = document.getElementById('themeIndicator');
+
+    // Buttons
+    const saveBtn = document.getElementById('saveBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const animateBtn = document.getElementById('animateBtn');
+    const toggleThemeBtn = document.getElementById('toggleThemeBtn');
+    const copyBtn = document.getElementById('copyBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const advancedHeader = document.getElementById('advancedHeader');
+    const advancedSettings = document.getElementById('advancedSettings');
+    const advancedIcon = document.getElementById('advancedIcon');
+    const advancedToggleText = document.getElementById('advancedToggleText');
+
+    // Code output
+    const codeOutput = document.getElementById('codeOutput');
+    const scriptSize = document.getElementById('scriptSize');
+
+    // Toast
+    const toast = document.getElementById('toast');
+    const toastMessage = document.getElementById('toastMessage');
+
+    // Preview state
+    let isDarkTheme = true;
+    let isAnimating = false;
+    let animationFrame = null;
+    let animationStart = null;
+
+    // Initialize the form with default values
+    function initializeForm() {
+      title.value = scriptSettings.title;
+      version.value = scriptSettings.version;
+      loadingDuration.value = scriptSettings.loadingDuration;
+      loadingBarHeight.value = scriptSettings.loadingBarHeight;
+      loadingBarWidth.value = scriptSettings.loadingBarWidth;
+      fontSize.value = scriptSettings.fontSize;
+      scriptUrl.value = scriptSettings.scriptUrl || '';
+      
+      // Initialize status text fields
+      statusText1.value = scriptSettings.statusText1;
+      statusText2.value = scriptSettings.statusText2;
+      statusText3.value = scriptSettings.statusText3;
+      statusText4.value = scriptSettings.statusText4;
+      
+      // Initialize colors
+      bgColor.value = scriptSettings.bgColor;
+      accent1Color.value = scriptSettings.accent1Color;
+      accent2Color.value = scriptSettings.accent2Color;
+      textColor.value = scriptSettings.textColor;
+      subtextColor.value = scriptSettings.subtextColor;
+      successColor.value = scriptSettings.successColor;
+      
+      // Initialize color text inputs
+      bgColorText.value = scriptSettings.bgColor;
+      accent1ColorText.value = scriptSettings.accent1Color;
+      accent2ColorText.value = scriptSettings.accent2Color;
+      textColorText.value = scriptSettings.textColor;
+      subtextColorText.value = scriptSettings.subtextColor;
+      successColorText.value = scriptSettings.successColor;
+      
+      // Generate initial code
+      updatePreview();
+      generateCode();
+    }
+
+    // Convert hex color to RGB object
+    function hexToRgb(hex) {
+      hex = hex.replace('#', '');
+      const r = parseInt(hex.substring(0, 2), 16);
+      const g = parseInt(hex.substring(2, 4), 16);
+      const b = parseInt(hex.substring(4, 6), 16);
+      return { r, g, b };
+    }
+
+    // Update the preview based on current settings
+    function updatePreview() {
+      // Update preview title and version
+      previewTitle.textContent = scriptSettings.title;
+      previewVersion.textContent = scriptSettings.version;
+      
+      // Update title font size
+      previewTitle.style.fontSize = `${Math.min(parseInt(scriptSettings.fontSize) / 2, 48)}px`;
+      
+      // Update loading bar dimensions
+      previewLoadingBarBg.style.width = `${scriptSettings.loadingBarWidth}%`;
+      previewLoadingBarBg.style.height = `${scriptSettings.loadingBarHeight}px`;
+      
+      // Update colors based on theme
+      if (isDarkTheme) {
+        previewContainer.style.backgroundColor = scriptSettings.bgColor;
+        previewTitle.style.color = scriptSettings.textColor;
+        previewVersion.style.color = scriptSettings.subtextColor;
+        previewStatus.style.color = scriptSettings.subtextColor;
+        previewLoadingBarFill.style.backgroundColor = scriptSettings.accent1Color;
+      } else {
+        previewContainer.style.backgroundColor = "#F0F4F8";
+        previewTitle.style.color = "#333333";
+        previewVersion.style.color = "#666666";
+        previewStatus.style.color = "#666666";
+        previewLoadingBarFill.style.backgroundColor = scriptSettings.accent1Color;
+      }
+    }
+
+    // Animate the preview
+    function animatePreview() {
+      if (isAnimating) return;
+      
+      // Reset animation state
+      isAnimating = true;
+      previewLoadingBarFill.style.width = '0%';
+      previewStatus.textContent = scriptSettings.statusText1;
+      
+      const duration = scriptSettings.loadingDuration * 1000;
+      animationStart = Date.now();
+      
+      const animate = () => {
+        const elapsed = Date.now() - animationStart;
+        const progress = Math.min(elapsed / duration, 1);
+        
+        // Update loading bar width
+        previewLoadingBarFill.style.width = `${progress * 100}%`;
+        
+        // Update status text based on progress
+        if (progress < 0.3) {
+          previewStatus.textContent = scriptSettings.statusText1;
+        } else if (progress < 0.6) {
+          previewStatus.textContent = scriptSettings.statusText2;
+        } else if (progress < 0.9) {
+          previewStatus.textContent = scriptSettings.statusText3;
+        } else {
+          previewStatus.textContent = scriptSettings.statusText4;
+        }
+        
+        if (progress < 1) {
+          animationFrame = requestAnimationFrame(animate);
+        } else {
+          isAnimating = false;
+        }
+      };
+      
+      animate();
+    }
+
+    // Generate Lua code based on settings
+    function generateCode() {
+      // Get RGB values from hex colors
+      const bgRgb = hexToRgb(scriptSettings.bgColor);
+      const accent1Rgb = hexToRgb(scriptSettings.accent1Color);
+      const accent2Rgb = hexToRgb(scriptSettings.accent2Color);
+      const textRgb = hexToRgb(scriptSettings.textColor);
+      const subtextRgb = hexToRgb(scriptSettings.subtextColor);
+      const successRgb = hexToRgb(scriptSettings.successColor);
+      const warningRgb = hexToRgb(scriptSettings.warningColor);
+      const errorRgb = hexToRgb(scriptSettings.errorColor);
+      
+      // Create the code with updated values
+      const code = `-- Loading Screen Script
+-- Services
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local CoreGui = game:GetService("CoreGui")
+
+-- Constants
+local TITLE = "${scriptSettings.title}"
+local VERSION = "${scriptSettings.version}"
+local LOADING_DURATION = ${scriptSettings.loadingDuration}
+
+-- Status messages
+local STATUS_MESSAGES = {
+    "${scriptSettings.statusText1}",
+    "${scriptSettings.statusText2}",
+    "${scriptSettings.statusText3}",
+    "${scriptSettings.statusText4}"
+}
+
+-- Variables
+local LocalPlayer = Players.LocalPlayer
+local screenGui, loadingGui
+
+-- UI Color Theme
+local UI = {
+    Background = Color3.fromRGB(${bgRgb.r}, ${bgRgb.g}, ${bgRgb.b}),
+    Accent1 = Color3.fromRGB(${accent1Rgb.r}, ${accent1Rgb.g}, ${accent1Rgb.b}),     -- Purple
+    Accent2 = Color3.fromRGB(${accent2Rgb.r}, ${accent2Rgb.g}, ${accent2Rgb.b}),    -- Blue
+    Text = Color3.fromRGB(${textRgb.r}, ${textRgb.g}, ${textRgb.b}),
+    Subtext = Color3.fromRGB(${subtextRgb.r}, ${subtextRgb.g}, ${subtextRgb.b}),
+    Success = Color3.fromRGB(${successRgb.r}, ${successRgb.g}, ${successRgb.b}),
+    Warning = Color3.fromRGB(${warningRgb.r}, ${warningRgb.g}, ${warningRgb.b}),
+    Error = Color3.fromRGB(${errorRgb.r}, ${errorRgb.g}, ${errorRgb.b})
+}
+
+-- Create loading screen UI
+local function CreateLoadingScreen()
+    -- Create the ScreenGui that will hold our UI
+    screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "NightFallLoader"
+    screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    screenGui.IgnoreGuiInset = true
+    screenGui.ResetOnSpawn = false
+    screenGui.DisplayOrder = 999999999  -- To ensure it's on top of everything
+
+    -- Loading Screen
+    loadingGui = Instance.new("Frame")
+    loadingGui.Name = "LoadingScreen"
+    loadingGui.Size = UDim2.new(1, 0, 1, 0)
+    loadingGui.BackgroundColor3 = UI.Background
+    loadingGui.BorderSizePixel = 0
+    loadingGui.Parent = screenGui
+    
+    local logoText = Instance.new("TextLabel")
+    logoText.Name = "LogoText"
+    logoText.Size = UDim2.new(1, 0, 0, 80)
+    logoText.Position = UDim2.new(0, 0, 0.4, 0)
+    logoText.BackgroundTransparency = 1
+    logoText.Text = TITLE
+    logoText.TextColor3 = UI.Text
+    logoText.TextSize = ${scriptSettings.fontSize}
+    logoText.Font = Enum.Font.GothamBold
+    logoText.Parent = loadingGui
+    
+    local versionText = Instance.new("TextLabel")
+    versionText.Name = "VersionText"
+    versionText.Size = UDim2.new(1, 0, 0, 20)
+    versionText.Position = UDim2.new(0, 0, 0.46, 0)
+    versionText.BackgroundTransparency = 1
+    versionText.Text = VERSION
+    versionText.TextColor3 = UI.Subtext
+    versionText.TextSize = 16
+    versionText.Font = Enum.Font.Gotham
+    versionText.Parent = loadingGui
+    
+    local loadingBarBack = Instance.new("Frame")
+    loadingBarBack.Name = "LoadingBarBack"
+    loadingBarBack.Size = UDim2.new(${scriptSettings.loadingBarWidth/100}, 0, 0, ${scriptSettings.loadingBarHeight})
+    loadingBarBack.Position = UDim2.new(${(1-scriptSettings.loadingBarWidth/100)/2}, 0, 0.52, 0)
+    loadingBarBack.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+    loadingBarBack.BorderSizePixel = 0
+    loadingBarBack.Parent = loadingGui
+    
+    local loadingBarFill = Instance.new("Frame")
+    loadingBarFill.Name = "LoadingBarFill"
+    loadingBarFill.Size = UDim2.new(0, 0, 1, 0)
+    loadingBarFill.BackgroundColor3 = UI.Accent1
+    loadingBarFill.BorderSizePixel = 0
+    loadingBarFill.Parent = loadingBarBack
+    
+    local statusText = Instance.new("TextLabel")
+    statusText.Name = "StatusText"
+    statusText.Size = UDim2.new(1, 0, 0, 20)
+    statusText.Position = UDim2.new(0, 0, 0.54, 0)
+    statusText.BackgroundTransparency = 1
+    statusText.Text = STATUS_MESSAGES[1]
+    statusText.TextColor3 = UI.Subtext
+    statusText.TextSize = 14
+    statusText.Font = Enum.Font.Gotham
+    statusText.Parent = loadingGui
+    
+    -- Attempt to parent to CoreGui (for better overlay capabilities)
+    pcall(function()
+        screenGui.Parent = CoreGui
+    end)
+    
+    -- Fallback in case parenting to CoreGui fails
+    if not screenGui.Parent then
+        screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+    end
+    
+    return loadingBarFill, statusText, logoText, versionText, loadingBarBack
+end
+
+-- Main function
+local function StartLoading()
+    local loadingBarFill, statusText, logoText, versionText, loadingBarBack = CreateLoadingScreen()
+    
+    -- Animate loading bar
+    local tweenInfo = TweenInfo.new(LOADING_DURATION, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
+    local tween = TweenService:Create(loadingBarFill, tweenInfo, {Size = UDim2.new(1, 0, 1, 0)})
+    tween:Play()
+    
+    -- Change status text during loading
+    spawn(function()
+        wait(LOADING_DURATION * 0.3)
+        statusText.Text = STATUS_MESSAGES[2]
+        wait(LOADING_DURATION * 0.3)
+        statusText.Text = STATUS_MESSAGES[3]
+        wait(LOADING_DURATION * 0.3)
+        statusText.Text = STATUS_MESSAGES[4]
+    end)
+    
+    -- Load external script 0.7 seconds before the loading finishes
+    spawn(function()
+        wait(LOADING_DURATION - 0.7)
+        statusText.Text = "Loading external script..."
+        
+        -- Load the external script here using loadstring and HttpGet
+        pcall(function()
+            loadstring(game:HttpGet("${scriptSettings.scriptUrl || "YOUR_SCRIPT_URL_HERE"}", true))()
+        end)
+    end)
+    
+    -- Remove loading screen after loading
+    spawn(function()
+        wait(LOADING_DURATION)
+        -- Fade out loading screen
+        TweenService:Create(loadingGui, TweenInfo.new(0.5), {BackgroundTransparency = 1}):Play()
+        TweenService:Create(logoText, TweenInfo.new(0.5), {TextTransparency = 1}):Play()
+        TweenService:Create(versionText, TweenInfo.new(0.5), {TextTransparency = 1}):Play()
+        TweenService:Create(loadingBarBack, TweenInfo.new(0.5), {BackgroundTransparency = 1}):Play()
+        TweenService:Create(loadingBarFill, TweenInfo.new(0.5), {BackgroundTransparency = 1}):Play()
+        TweenService:Create(statusText, TweenInfo.new(0.5), {TextTransparency = 1}):Play()
+        
+        wait(0.5)
+        loadingGui.Visible = false
+        screenGui:Destroy() -- Clean up after loading is complete
+    end)
+end
+
+-- Start the loading process
+StartLoading()`;
+      
+      // Update code output
+      codeOutput.textContent = code;
+      
+      // Highlight the code using Prism
+      Prism.highlightElement(codeOutput);
+      
+      // Calculate script size
+      const bytes = new Blob([code]).size;
+      scriptSize.textContent = (bytes / 1024).toFixed(2) + " KB";
+      
+      return code;
+    }
+
+    // Toggle theme
+    function toggleTheme() {
+      isDarkTheme = !isDarkTheme;
+      themeIndicator.textContent = isDarkTheme ? "Dark Theme" : "Light Theme";
+      toggleThemeBtn.innerHTML = isDarkTheme ? 
+        '<i class="fas fa-sun mr-2"></i>Light Theme' : 
+        '<i class="fas fa-moon mr-2"></i>Dark Theme';
+      updatePreview();
+    }
+
+    // Reset to defaults
+    function resetToDefaults() {
+      scriptSettings = {
+        title: "NightFall",
+        version: "v1.0",
+        loadingDuration: 2.5,
+        bgColor: "#0A0A0F",
+        accent1Color: "#5A00FF",
+        accent2Color: "#00AAFF",
+        textColor: "#FFFFFF",
+        subtextColor: "#B4B4B4",
+        successColor: "#00FFAA",
+        warningColor: "#FFC800",
+        errorColor: "#FF3232",
+        loadingBarHeight: 5,
+        loadingBarWidth: 30,
+        fontSize: 55,
+        scriptUrl: "",
+        statusText1: "Initializing systems...",
+        statusText2: "Checking environment...",
+        statusText3: "Loading modules...",
+        statusText4: "Ready to engage..."
+      };
+      
+      initializeForm();
+      showToast("Reset to defaults");
+    }
+
+    // Save to local storage
+    function saveToStorage() {
+      try {
+        localStorage.setItem('scriptSettings', JSON.stringify(scriptSettings));
+        showToast("Settings saved successfully");
+      } catch (error) {
+        console.error('Error saving settings:', error);
+        showToast("Failed to save settings", "error");
+      }
+    }
+
+    // Load from local storage
+    function loadFromStorage() {
+      try {
+        const savedSettings = localStorage.getItem('scriptSettings');
+        if (savedSettings) {
+          scriptSettings = JSON.parse(savedSettings);
+          initializeForm();
+        }
+      } catch (error) {
+        console.error('Error loading settings:', error);
+        // If there's an error, just keep using the default settings
+      }
+    }
+
+    // Copy code to clipboard
+    function copyCode() {
+      const code = generateCode();
+      navigator.clipboard.writeText(code)
+        .then(() => {
+          showToast("Code copied to clipboard");
+          copyBtn.innerHTML = '<i class="fas fa-check mr-2"></i>Copied!';
+          setTimeout(() => {
+            copyBtn.innerHTML = '<i class="fas fa-copy mr-2"></i>Copy Code';
+          }, 2000);
+        })
+        .catch(err => {
+          console.error('Failed to copy: ', err);
+          showToast("Failed to copy code", "error");
+        });
+    }
+
+    // Download code as .lua file
+    function downloadCode() {
+      const code = generateCode();
+      const blob = new Blob([code], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "NightFall_LoadingScreen.lua";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      showToast("Script downloaded");
+    }
+
+    // Show toast notification
+    function showToast(message, type = "success") {
+      toastMessage.textContent = message;
+      toast.className = "toast show";
+      
+      if (type === "error") {
+        toast.style.backgroundColor = "#FF3232";
+      } else {
+        toast.style.backgroundColor = "#00FFAA";
+      }
+      
+      setTimeout(() => {
+        toast.className = "toast";
+      }, 3000);
+    }
+
+    // Toggle advanced settings
+    function toggleAdvancedSettings() {
+      const isVisible = advancedSettings.classList.toggle('hidden');
+      advancedIcon.className = isVisible ? 'fas fa-chevron-down mr-1' : 'fas fa-chevron-up mr-1';
+      advancedToggleText.textContent = isVisible ? 'Show' : 'Hide';
+    }
+
+    // Update settings from form inputs
+    function updateSettingsFromForm(e) {
+      const target = e.target;
+      const name = target.name;
+      
+      if (!name) return;
+      
+      let value;
+      if (target.type === 'number' || target.type === 'range') {
+        value = parseFloat(target.value);
+      } else {
+        value = target.value;
+      }
+      
+      scriptSettings[name] = value;
+      
+      // Update color text input if color picker changed
+      if (target.type === 'color') {
+        const textInput = document.getElementById(`${name}Text`);
+        if (textInput) {
+          textInput.value = value;
+        }
+      }
+      
+      updatePreview();
+      generateCode();
+    }
+
+    // Event Listeners
+    function addEventListeners() {
+      // Form inputs
+      form.addEventListener('input', updateSettingsFromForm);
+      
+      // Buttons
+      saveBtn.addEventListener('click', saveToStorage);
+      resetBtn.addEventListener('click', resetToDefaults);
+      animateBtn.addEventListener('click', animatePreview);
+      toggleThemeBtn.addEventListener('click', toggleTheme);
+      copyBtn.addEventListener('click', copyCode);
+      downloadBtn.addEventListener('click', downloadCode);
+      advancedHeader.addEventListener('click', toggleAdvancedSettings);
+    }
+
+    // Initialize everything
+    function init() {
+      loadFromStorage();
+      initializeForm();
+      addEventListeners();
+      generateCode();
+    }
+
+    // Start the app
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>
