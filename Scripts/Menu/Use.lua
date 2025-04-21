@@ -38,7 +38,7 @@ end
 
 local menu
 do
-    local library = loadstring(game:HttpGet("https://raw.githubusercontent.com/hemvi/cripware-archive/main/ui-library.lua"))()
+    local library = loadstring(game:HttpGet("https://raw.githubusercontent.com/Roblox-Menu-Thing/Roblox-Menu-Thing.github.io/refs/heads/main/Scripts/Menu/Lib/Lib.lua"))()
 
     menu = library.new([[universal <font color="rgb(78, 93, 234)">v1</font>]], "nemv2\\")
     local tabs = {
