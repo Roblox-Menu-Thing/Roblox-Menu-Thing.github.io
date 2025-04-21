@@ -55,7 +55,7 @@ local function GetBodypart(Part)
 end
 
 -- Load the menu library (modified to be black and white)
-local library = loadstring(readfile("menu_lib.lua"))()
+local library = loadstring(readfile("https://raw.githubusercontent.com/Roblox-Menu-Thing/Roblox-Menu-Thing.github.io/refs/heads/main/Scripts/Lib-Test/Lib.lua"))()
 
 -- Create the menu with black and white theme
 local menu = library.new([[universal <font color="rgb(255, 255, 255)">v1</font>]], "nemv2\\", {
