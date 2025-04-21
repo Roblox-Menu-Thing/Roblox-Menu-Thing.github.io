@@ -6,6 +6,50 @@ local CoreGui = game:GetService("CoreGui")
 local Camera = workspace.CurrentCamera
 local LocalPlayer = Players.LocalPlayer
 
+-- Function to check if player can be damaged
+local function CanDamagePlayer(player)
+    -- Check if friendly fire is on (can damage teammates)
+    local friendlyFire = workspace:FindFirstChild("FriendlyFire")
+    if friendlyFire and friendlyFire:IsA("BoolValue") and friendlyFire.Value then
+        return true
+    end
+    
+    -- Check if player is on enemy team
+    if player.Team ~= LocalPlayer.Team then
+        return true
+    end
+    
+    -- Try to check if player is damageable through other means
+    -- Some games have a "Damage" or "CanDamage" function/value
+    local character = player.Character
+    if character then
+        -- Some games use a TeamTag or TeamColor to determine teams
+        local teamTag = character:FindFirstChild("TeamTag")
+        if teamTag and teamTag:IsA("StringValue") then
+            local localCharacter = LocalPlayer.Character
+            if localCharacter then
+                local localTeamTag = localCharacter:FindFirstChild("TeamTag")
+                if localTeamTag and localTeamTag:IsA("StringValue") then
+                    return localTeamTag.Value ~= teamTag.Value
+                end
+            end
+        end
+        
+        -- Some games use a "Humanoid" property to check teams
+        local humanoid = character:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            -- Check if we can damage this humanoid (some games set properties on the humanoid)
+            local localCharacter = LocalPlayer.Character
+            if localCharacter and localCharacter:FindFirstChildOfClass("Humanoid") then
+                return true -- In most games you can damage other humanoids
+            end
+        end
+    end
+    
+    -- Default to allowing targeting if all checks fail
+    return true
+end
+
 -- Settings Initialization
 local Settings = {
     ESP = {
@@ -28,10 +72,24 @@ local Settings = {
         FOV = 100,
         TargetPart = "Head",
         ShowFOV = true,
-        SnapLineVisible = false, -- Hide aimbot snap line
-        AimAtSnapLine = false, -- Aim directly at target
+        SnapLineVisible = true, -- Always show snap line (modified)
+        AimAtSnapLine = true, -- Aim directly at target (modified)
         PrecisionFactor = 0.99, -- How precisely to aim (0.99 = 99% accuracy)
-        Active = false -- Track if right mouse is currently held
+        Active = false, -- Track if right mouse is currently held
+        AimMode = "Camera" -- "Camera" or "Mouse" - NEW SETTING
+    },
+    MouseAimbot = { -- NEW SECTION
+        Enabled = true, -- Enabled by default now
+        TeamCheck = false,
+        Smoothness = 0.1, -- Lower = smoother (more precise by default)
+        FOV = 100,
+        TargetPart = "Head",
+        PrecisionFactor = 0.995, -- Higher precision (99.5%)
+        Active = false,
+        HeadPrecision = true, -- NEW - More precise head targeting
+        OffsetY = 0, -- Vertical offset for head targeting
+        OffsetX = 0,  -- Horizontal offset for head targeting
+        SnapLineVisible = true -- Always show mouse snap line (added)
     }
 }
 
@@ -46,6 +104,17 @@ FOVCircle.ZIndex = 999
 FOVCircle.Transparency = 1
 FOVCircle.Color = Color3.fromRGB(255, 0, 255)
 
+-- Mouse FOV Circle (NEW)
+local MouseFOVCircle = Drawing.new("Circle")
+MouseFOVCircle.Thickness = 2
+MouseFOVCircle.NumSides = 100
+MouseFOVCircle.Radius = 100
+MouseFOVCircle.Filled = false
+MouseFOVCircle.Visible = false
+MouseFOVCircle.ZIndex = 999
+MouseFOVCircle.Transparency = 1
+MouseFOVCircle.Color = Color3.fromRGB(0, 255, 255) -- Different color for mouse FOV
+
 -- Aimbot Snap Line
 local AimbotSnapLine = Drawing.new("Line")
 AimbotSnapLine.Visible = false
@@ -53,6 +122,49 @@ AimbotSnapLine.Thickness = 1.5
 AimbotSnapLine.Color = Color3.fromRGB(255, 0, 0) -- Red snap line
 AimbotSnapLine.Transparency = 0.8
 AimbotSnapLine.ZIndex = 1000
+
+-- Mouse Aimbot Snap Line (NEW)
+local MouseAimbotSnapLine = Drawing.new("Line")
+MouseAimbotSnapLine.Visible = false
+MouseAimbotSnapLine.Thickness = 1.5
+MouseAimbotSnapLine.Color = Color3.fromRGB(0, 255, 255) -- Cyan for mouse snap line
+MouseAimbotSnapLine.Transparency = 0.8
+MouseAimbotSnapLine.ZIndex = 1000
+
+-- Method indicator text
+local AimMethodIndicator = Drawing.new("Text")
+AimMethodIndicator.Visible = true
+AimMethodIndicator.Size = 20
+AimMethodIndicator.Center = true
+AimMethodIndicator.Outline = true
+AimMethodIndicator.Color = Color3.fromRGB(255, 0, 255)
+AimMethodIndicator.Text = "Aim Method: Camera"
+AimMethodIndicator.Position = Vector2.new(Camera.ViewportSize.X / 2, 30)
+AimMethodIndicator.ZIndex = 1001
+
+-- Camera aimbot indicator
+local CameraAimbotIndicator = Drawing.new("Text")
+CameraAimbotIndicator.Visible = true
+CameraAimbotIndicator.Size = 18
+CameraAimbotIndicator.Center = true
+CameraAimbotIndicator.Outline = true
+CameraAimbotIndicator.Color = Color3.fromRGB(155, 0, 0)
+CameraAimbotIndicator.Text = "Camera Aimbot: OFF"
+CameraAimbotIndicator.Position = Vector2.new(Camera.ViewportSize.X / 2, 55)
+CameraAimbotIndicator.ZIndex = 1001
+
+-- Mouse aimbot indicator
+local MouseAimbotIndicator = Drawing.new("Text")
+MouseAimbotIndicator.Visible = true
+MouseAimbotIndicator.Size = 18
+MouseAimbotIndicator.Center = true
+MouseAimbotIndicator.Outline = true
+MouseAimbotIndicator.Color = Color3.fromRGB(0, 155, 155)
+MouseAimbotIndicator.Text = "Mouse Aimbot: OFF"
+MouseAimbotIndicator.Position = Vector2.new(Camera.ViewportSize.X / 2, 80)
+MouseAimbotIndicator.ZIndex = 1001
+
+
 
 -- Create a drop shadow GUI for the button panel
 local DropShadowHolder = Instance.new("ScreenGui")
@@ -75,8 +187,8 @@ end
 -- Create panel
 local Panel = Instance.new("Frame")
 Panel.Name = "MainPanel"
-Panel.Size = UDim2.new(0, 250, 0, 430)
-Panel.Position = UDim2.new(1, -260, 0.5, -215)
+Panel.Size = UDim2.new(0, 250, 0, 500) -- Increased panel height to see more content
+Panel.Position = UDim2.new(1, -260, 0.5, -250) -- Adjusted position to center the larger panel
 Panel.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
 Panel.BorderSizePixel = 0
 Panel.Parent = DropShadowHolder
@@ -135,7 +247,7 @@ TitleText.BackgroundTransparency = 1
 TitleText.TextColor3 = Color3.fromRGB(255, 0, 255)
 TitleText.TextSize = 18
 TitleText.Font = Enum.Font.SourceSansBold
-TitleText.Text = "Ultimate Aimbot"
+TitleText.Text = "Ultimate Aimbot + Mouse"
 TitleText.TextXAlignment = Enum.TextXAlignment.Left
 TitleText.ZIndex = TitleBar.ZIndex + 1
 TitleText.Parent = TitleBar
@@ -183,7 +295,7 @@ ScrollFrame.BackgroundTransparency = 1
 ScrollFrame.BorderSizePixel = 0
 ScrollFrame.ScrollBarThickness = 4
 ScrollFrame.ScrollBarImageColor3 = Color3.fromRGB(255, 0, 255)
-ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 700) -- Increased to fit all content
+ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 1200) -- Significantly increased to allow more scrolling
 ScrollFrame.Parent = Panel
 
 -- Create UI Layout for buttons
@@ -403,6 +515,12 @@ local function CreateSlider(name, min, max, initialValue, callback, order)
         end
     end)
     
+    track.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            updateSlider(input)
+        end
+    end)
+    
     handle.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
             dragging = true
@@ -415,469 +533,813 @@ local function CreateSlider(name, min, max, initialValue, callback, order)
         end
     end)
     
-    UserInputService.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement and dragging then
+    handle.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
             updateSlider(input)
         end
     end)
     
     sliderFrame.Parent = ScrollFrame
-    return sliderFrame, initialValue
+    return sliderFrame
 end
 
--- Create UI elements
+-- Function to create a dropdown menu
+local function CreateDropdown(name, options, initialValue, callback, order)
+    local dropdownFrame = Instance.new("Frame")
+    dropdownFrame.Name = name .. "Dropdown"
+    dropdownFrame.Size = UDim2.new(1, 0, 0, 60) -- Initial size, will adjust
+    dropdownFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+    dropdownFrame.BorderSizePixel = 0
+    dropdownFrame.LayoutOrder = order
+    
+    -- Add rounded corners
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 6)
+    corner.Parent = dropdownFrame
+    
+    -- Dropdown label
+    local label = Instance.new("TextLabel")
+    label.Name = "Label"
+    label.Size = UDim2.new(1, -20, 0, 20)
+    label.Position = UDim2.new(0, 10, 0, 5)
+    label.BackgroundTransparency = 1
+    label.TextColor3 = Color3.fromRGB(200, 200, 200)
+    label.TextSize = 14
+    label.Font = Enum.Font.SourceSans
+    label.Text = name
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Parent = dropdownFrame
+    
+    -- Selected value display
+    local selectionDisplay = Instance.new("TextButton")
+    selectionDisplay.Name = "Selection"
+    selectionDisplay.Size = UDim2.new(1, -20, 0, 30)
+    selectionDisplay.Position = UDim2.new(0, 10, 0, 25)
+    selectionDisplay.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+    selectionDisplay.BorderSizePixel = 0
+    selectionDisplay.TextColor3 = Color3.fromRGB(200, 200, 200)
+    selectionDisplay.TextSize = 14
+    selectionDisplay.Font = Enum.Font.SourceSans
+    selectionDisplay.Text = " " .. initialValue -- Add spacing
+    selectionDisplay.TextXAlignment = Enum.TextXAlignment.Left
+    selectionDisplay.Parent = dropdownFrame
+    
+    -- Add rounded corners to selection
+    local selectionCorner = Instance.new("UICorner")
+    selectionCorner.CornerRadius = UDim.new(0, 4)
+    selectionCorner.Parent = selectionDisplay
+    
+    -- Dropdown arrow
+    local arrow = Instance.new("TextLabel")
+    arrow.Name = "Arrow"
+    arrow.Size = UDim2.new(0, 20, 0, 20)
+    arrow.Position = UDim2.new(1, -25, 0, 5)
+    arrow.BackgroundTransparency = 1
+    arrow.TextColor3 = Color3.fromRGB(200, 200, 200)
+    arrow.TextSize = 14
+    arrow.Font = Enum.Font.SourceSansBold
+    arrow.Text = "▼"
+    arrow.Parent = selectionDisplay
+    
+    -- Options container
+    local optionsContainer = Instance.new("Frame")
+    optionsContainer.Name = "Options"
+    optionsContainer.Size = UDim2.new(1, 0, 0, 0) -- Will adjust based on options
+    optionsContainer.Position = UDim2.new(0, 0, 1, 5)
+    optionsContainer.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+    optionsContainer.BorderSizePixel = 0
+    optionsContainer.Visible = false
+    optionsContainer.ZIndex = 5
+    optionsContainer.Parent = selectionDisplay
+    
+    -- Add rounded corners to options
+    local optionsCorner = Instance.new("UICorner")
+    optionsCorner.CornerRadius = UDim.new(0, 4)
+    optionsCorner.Parent = optionsContainer
+    
+    -- Create options
+    local optionsLayout = Instance.new("UIListLayout")
+    optionsLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    optionsLayout.Parent = optionsContainer
+    
+    local currentSelection = initialValue
+    local isOpen = false
+    
+    -- Create option buttons
+    for i, option in ipairs(options) do
+        local optionButton = Instance.new("TextButton")
+        optionButton.Name = option
+        optionButton.Size = UDim2.new(1, 0, 0, 25)
+        optionButton.BackgroundTransparency = 1
+        optionButton.TextColor3 = Color3.fromRGB(200, 200, 200)
+        optionButton.TextSize = 14
+        optionButton.Font = Enum.Font.SourceSans
+        optionButton.Text = " " .. option  -- Add spacing
+        optionButton.TextXAlignment = Enum.TextXAlignment.Left
+        optionButton.ZIndex = 6
+        optionButton.LayoutOrder = i
+        optionButton.Parent = optionsContainer
+        
+        optionButton.MouseButton1Click:Connect(function()
+            currentSelection = option
+            selectionDisplay.Text = " " .. option
+            isOpen = false
+            optionsContainer.Visible = false
+            arrow.Text = "▼"
+            callback(option)
+        end)
+    end
+    
+    -- Adjust options container size
+    optionsContainer.Size = UDim2.new(1, 0, 0, 25 * #options)
+    
+    -- Toggle dropdown
+    selectionDisplay.MouseButton1Click:Connect(function()
+        isOpen = not isOpen
+        optionsContainer.Visible = isOpen
+        arrow.Text = isOpen and "▲" or "▼"
+    end)
+    
+    -- Close dropdown if clicked elsewhere
+    UserInputService.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 and isOpen then
+            local mousePos = UserInputService:GetMouseLocation()
+            local dropdownPos = selectionDisplay.AbsolutePosition
+            local dropdownSize = selectionDisplay.AbsoluteSize
+            local optionsSize = optionsContainer.AbsoluteSize
+            
+            if not (mousePos.X >= dropdownPos.X and mousePos.X <= dropdownPos.X + dropdownSize.X and 
+                (mousePos.Y >= dropdownPos.Y and mousePos.Y <= dropdownPos.Y + dropdownSize.Y + optionsSize.Y)) then
+                isOpen = false
+                optionsContainer.Visible = false
+                arrow.Text = "▼"
+            end
+        end
+    end)
+    
+    dropdownFrame.Parent = ScrollFrame
+    return dropdownFrame, currentSelection
+end
+
+-- Create the UI elements
 -- ESP Section
 local espHeader = CreateHeader("ESP Settings", 0)
 
-local espToggle = CreateToggle("ESP Enabled", Settings.ESP.Enabled, function(state)
-    Settings.ESP.Enabled = state
+local espToggle = CreateToggle("ESP Enabled", Settings.ESP.Enabled, function(value)
+    Settings.ESP.Enabled = value
 end, 1)
 
-local boxesToggle = CreateToggle("Show Boxes", Settings.ESP.Boxes, function(state)
-    Settings.ESP.Boxes = state
+local boxesToggle = CreateToggle("Show Boxes", Settings.ESP.Boxes, function(value)
+    Settings.ESP.Boxes = value
 end, 2)
 
-local namesToggle = CreateToggle("Show Names", Settings.ESP.Names, function(state)
-    Settings.ESP.Names = state
+local namesToggle = CreateToggle("Show Names", Settings.ESP.Names, function(value)
+    Settings.ESP.Names = value
 end, 3)
 
-local distanceToggle = CreateToggle("Show Distance", Settings.ESP.Distance, function(state)
-    Settings.ESP.Distance = state
+local distanceToggle = CreateToggle("Show Distance", Settings.ESP.Distance, function(value)
+    Settings.ESP.Distance = value
 end, 4)
 
-local snaplinesToggle = CreateToggle("Show ESP Snaplines", Settings.ESP.Snaplines, function(state)
-    Settings.ESP.Snaplines = state
+local healthToggle = CreateToggle("Show Health", Settings.ESP.Health, function(value)
+    Settings.ESP.Health = value
 end, 5)
 
-local teamCheckToggle = CreateToggle("Team Check", Settings.ESP.TeamCheck, function(state)
-    Settings.ESP.TeamCheck = state
-    Settings.Aimbot.TeamCheck = state
+local snaplinesToggle = CreateToggle("Show Snaplines", Settings.ESP.Snaplines, function(value)
+    Settings.ESP.Snaplines = value
 end, 6)
 
-local rainbowToggle = CreateToggle("Rainbow ESP", Settings.ESP.Rainbow, function(state)
-    Settings.ESP.Rainbow = state
+local teamCheckToggle = CreateToggle("Team Check", Settings.ESP.TeamCheck, function(value)
+    Settings.ESP.TeamCheck = value
 end, 7)
 
+local rainbowToggle = CreateToggle("Rainbow ESP", Settings.ESP.Rainbow, function(value)
+    Settings.ESP.Rainbow = value
+end, 8)
+
 -- Aimbot Section
-local aimbotHeader = CreateHeader("Aimbot Settings", 100)
+local aimbotHeader = CreateHeader("Camera Aimbot Settings", 9)
 
-local aimbotToggle = CreateToggle("Aimbot Enabled", Settings.Aimbot.Enabled, function(state)
-    Settings.Aimbot.Enabled = state
-end, 101)
+local aimbotToggle = CreateToggle("Aimbot Enabled", Settings.Aimbot.Enabled, function(value)
+    Settings.Aimbot.Enabled = value
+end, 10)
 
-local fovCircleToggle = CreateToggle("Show FOV Circle", Settings.Aimbot.ShowFOV, function(state)
-    Settings.Aimbot.ShowFOV = state
-    FOVCircle.Visible = Settings.Aimbot.Enabled and state
-end, 102)
-
-local aimbotSnapLineToggle = CreateToggle("Show Aimbot Snap Line", Settings.Aimbot.SnapLineVisible, function(state)
-    Settings.Aimbot.SnapLineVisible = state
-end, 103)
-
-local aimAtSnapLineToggle = CreateToggle("Aim At Snap Line", Settings.Aimbot.AimAtSnapLine, function(state)
-    Settings.Aimbot.AimAtSnapLine = state
-end, 104)
-
-local fovSlider = CreateSlider("FOV Size", 10, 400, Settings.Aimbot.FOV, function(value)
-    Settings.Aimbot.FOV = value
-    FOVCircle.Radius = value
-end, 105)
+local aimTeamCheckToggle = CreateToggle("Team Check", Settings.Aimbot.TeamCheck, function(value)
+    Settings.Aimbot.TeamCheck = value
+end, 11)
 
 local smoothnessSlider = CreateSlider("Smoothness", 0.01, 1, Settings.Aimbot.Smoothness, function(value)
     Settings.Aimbot.Smoothness = value
-end, 106)
+end, 12)
 
--- Add an additional aimbot sensitivity slider
-local aimSpeedSlider = CreateSlider("Aim Speed", 1, 10, 5, function(value)
-    -- Higher values make the aimbot more snappy, lower values make it smoother
-    local adjustedSpeed = value / 10
-    Settings.Aimbot.AimSpeed = adjustedSpeed
-end, 107)
+local fovSlider = CreateSlider("FOV", 10, 800, Settings.Aimbot.FOV, function(value)
+    Settings.Aimbot.FOV = value
+    FOVCircle.Radius = value
+end, 13)
 
-local precisionSlider = CreateSlider("Precision", 0.9, 1, Settings.Aimbot.PrecisionFactor, function(value)
-    Settings.Aimbot.PrecisionFactor = value
-end, 108)
+local showFOVToggle = CreateToggle("Show FOV Circle", Settings.Aimbot.ShowFOV, function(value)
+    Settings.Aimbot.ShowFOV = value
+    FOVCircle.Visible = value
+end, 14)
 
--- Target Part Dropdown
-local targetPartFrame = Instance.new("Frame")
-targetPartFrame.Name = "TargetPartFrame"
-targetPartFrame.Size = UDim2.new(1, 0, 0, 30)
-targetPartFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
-targetPartFrame.BorderSizePixel = 0
-targetPartFrame.LayoutOrder = 109
-targetPartFrame.Parent = ScrollFrame
+local snapLineToggle = CreateToggle("Show Snap Line", Settings.Aimbot.SnapLineVisible, function(value)
+    Settings.Aimbot.SnapLineVisible = value
+end, 15)
 
--- Add rounded corners
-local targetPartCorner = Instance.new("UICorner")
-targetPartCorner.CornerRadius = UDim.new(0, 6)
-targetPartCorner.Parent = targetPartFrame
+local targetPartDropdown, selectedPart = CreateDropdown("Target Part", {"Head", "Torso", "HumanoidRootPart"}, Settings.Aimbot.TargetPart, function(option)
+    Settings.Aimbot.TargetPart = option
+end, 16)
 
--- Target part label
-local targetPartLabel = Instance.new("TextLabel")
-targetPartLabel.Name = "Label"
-targetPartLabel.Size = UDim2.new(0, 80, 1, 0)
-targetPartLabel.Position = UDim2.new(0, 10, 0, 0)
-targetPartLabel.BackgroundTransparency = 1
-targetPartLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-targetPartLabel.TextSize = 14
-targetPartLabel.Font = Enum.Font.SourceSans
-targetPartLabel.Text = "Target Part:"
-targetPartLabel.TextXAlignment = Enum.TextXAlignment.Left
-targetPartLabel.Parent = targetPartFrame
-
--- Target part dropdown button
-local targetPartButton = Instance.new("TextButton")
-targetPartButton.Name = "DropdownButton"
-targetPartButton.Size = UDim2.new(0, 120, 0, 24)
-targetPartButton.Position = UDim2.new(1, -130, 0.5, -12)
-targetPartButton.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
-targetPartButton.BorderSizePixel = 0
-targetPartButton.Text = Settings.Aimbot.TargetPart
-targetPartButton.TextColor3 = Color3.fromRGB(200, 200, 200)
-targetPartButton.TextSize = 14
-targetPartButton.Font = Enum.Font.SourceSans
-targetPartButton.Parent = targetPartFrame
-
--- Add rounded corners to dropdown button
-local buttonCorner = Instance.new("UICorner")
-buttonCorner.CornerRadius = UDim.new(0, 4)
-buttonCorner.Parent = targetPartButton
-
--- Dropdown menu
-local dropdownMenu = Instance.new("Frame")
-dropdownMenu.Name = "DropdownMenu"
-dropdownMenu.Size = UDim2.new(0, 120, 0, 0)
-dropdownMenu.Position = UDim2.new(1, -130, 1, 2)
-dropdownMenu.BackgroundColor3 = Color3.fromRGB(45, 45, 50)
-dropdownMenu.BorderSizePixel = 0
-dropdownMenu.Visible = false
-dropdownMenu.ZIndex = 10
-dropdownMenu.ClipsDescendants = true
-dropdownMenu.Parent = targetPartFrame
-
--- Add rounded corners to dropdown menu
-local menuCorner = Instance.new("UICorner")
-menuCorner.CornerRadius = UDim.new(0, 4)
-menuCorner.Parent = dropdownMenu
-
--- Add options to dropdown
-local options = {"Head", "Torso", "HumanoidRootPart", "UpperTorso", "LowerTorso"}
-local optionButtons = {}
-
-for i, option in ipairs(options) do
-    local optionButton = Instance.new("TextButton")
-    optionButton.Name = option .. "Option"
-    optionButton.Size = UDim2.new(1, 0, 0, 24)
-    optionButton.Position = UDim2.new(0, 0, 0, (i-1) * 24)
-    optionButton.BackgroundColor3 = Color3.fromRGB(45, 45, 50)
-    optionButton.BackgroundTransparency = 1
-    optionButton.BorderSizePixel = 0
-    optionButton.Text = option
-    optionButton.TextColor3 = Color3.fromRGB(200, 200, 200)
-    optionButton.TextSize = 14
-    optionButton.Font = Enum.Font.SourceSans
-    optionButton.ZIndex = 10
-    optionButton.Parent = dropdownMenu
+-- NEW: Aim Mode Dropdown
+local aimModeDropdown, selectedAimMode = CreateDropdown("Aim Mode", {"Camera", "Mouse"}, Settings.Aimbot.AimMode, function(option)
+    Settings.Aimbot.AimMode = option
     
-    optionButton.MouseEnter:Connect(function()
-        TweenService:Create(optionButton, TweenInfo.new(0.1), {BackgroundTransparency = 0.8}):Play()
-    end)
+    -- Update the method indicator when aim mode is changed
+    AimMethodIndicator.Text = "Aim Method: " .. option
     
-    optionButton.MouseLeave:Connect(function()
-        TweenService:Create(optionButton, TweenInfo.new(0.1), {BackgroundTransparency = 1}):Play()
-    end)
-    
-    optionButton.MouseButton1Click:Connect(function()
-        Settings.Aimbot.TargetPart = option
-        targetPartButton.Text = option
-        toggleDropdown(false)
-    end)
-    
-    table.insert(optionButtons, optionButton)
-end
-
--- Toggle dropdown function
-local dropdownOpen = false
-function toggleDropdown(state)
-    if state == nil then
-        state = not dropdownOpen
-    end
-    
-    dropdownOpen = state
-    dropdownMenu.Visible = state
-    
-    if state then
-        -- Expand menu
-        TweenService:Create(dropdownMenu, TweenInfo.new(0.2), {Size = UDim2.new(0, 120, 0, #options * 24)}):Play()
+    -- Change colors based on selected method
+    if option == "Camera" then
+        AimMethodIndicator.Color = Color3.fromRGB(255, 0, 0) -- Red for camera
+        ActiveAimbotIndicator.Color = Color3.fromRGB(155, 0, 0) -- Dimmed red when inactive
+        ActiveAimbotIndicator.Text = "Camera Aimbot: OFF"
     else
-        -- Collapse menu
-        TweenService:Create(dropdownMenu, TweenInfo.new(0.2), {Size = UDim2.new(0, 120, 0, 0)}):Play()
-        wait(0.2)
-        dropdownMenu.Visible = false
+        AimMethodIndicator.Color = Color3.fromRGB(0, 255, 255) -- Cyan for mouse
+        MouseAimbotIndicator.Color = Color3.fromRGB(0, 155, 155) -- Dimmed cyan when inactive
+        MouseAimbotIndicator.Text = "Mouse Aimbot: OFF"
     end
-end
+end, 17)
 
--- Toggle dropdown when button is clicked
-targetPartButton.MouseButton1Click:Connect(function()
-    toggleDropdown()
-end)
+-- NEW: Mouse Aimbot Section
+local mouseAimbotHeader = CreateHeader("Mouse Aimbot Settings", 18)
 
--- Utility function to get the closest player
-local function GetClosestPlayer()
-    local closestPlayer, shortestDistance = nil, math.huge
-    local mousePos = UserInputService:GetMouseLocation()
+local mouseAimbotToggle = CreateToggle("Mouse Aimbot Enabled", Settings.MouseAimbot.Enabled, function(value)
+    Settings.MouseAimbot.Enabled = value
+end, 19)
 
-    for _, player in pairs(Players:GetPlayers()) do
+local mouseTeamCheckToggle = CreateToggle("Team Check", Settings.MouseAimbot.TeamCheck, function(value)
+    Settings.MouseAimbot.TeamCheck = value
+end, 20)
+
+local mouseSmoothSlider = CreateSlider("Smoothness", 0.01, 1, Settings.MouseAimbot.Smoothness, function(value)
+    Settings.MouseAimbot.Smoothness = value
+end, 21)
+
+local mouseFOVSlider = CreateSlider("FOV", 10, 800, Settings.MouseAimbot.FOV, function(value)
+    Settings.MouseAimbot.FOV = value
+    MouseFOVCircle.Radius = value
+end, 22)
+
+local mouseShowFOVToggle = CreateToggle("Show Mouse FOV Circle", true, function(value)
+    MouseFOVCircle.Visible = value
+end, 23)
+
+local precisionHeadToggle = CreateToggle("Precise Head Targeting", Settings.MouseAimbot.HeadPrecision, function(value)
+    Settings.MouseAimbot.HeadPrecision = value
+end, 24)
+
+local verticalOffsetSlider = CreateSlider("Vertical Offset", -10, 10, Settings.MouseAimbot.OffsetY, function(value)
+    Settings.MouseAimbot.OffsetY = value
+end, 25)
+
+local horizontalOffsetSlider = CreateSlider("Horizontal Offset", -10, 10, Settings.MouseAimbot.OffsetX, function(value)
+    Settings.MouseAimbot.OffsetX = value
+end, 26)
+
+-- Function to get closest enemy player to the mouse cursor
+local function GetClosestPlayerToMouse(fov)
+    local closestPlayer = nil
+    local shortestDistance = fov or math.huge
+
+    local mouse = UserInputService:GetMouseLocation()
+
+    for _, player in ipairs(Players:GetPlayers()) do
         if player ~= LocalPlayer then
-            if Settings.Aimbot.TeamCheck and player.Team == LocalPlayer.Team then 
-                continue 
-            end
-
-            local character = player.Character
-            if character then
-                local targetPart = character:FindFirstChild(Settings.Aimbot.TargetPart)
-                if targetPart then
-                    local pos, onScreen = Camera:WorldToViewportPoint(targetPart.Position)
-                    if onScreen then
-                        local distance = (Vector2.new(pos.X, pos.Y) - mousePos).Magnitude
-                        if distance <= Settings.Aimbot.FOV and distance < shortestDistance then
-                            closestPlayer, shortestDistance = player, distance
+            -- Team check
+            if (Settings.MouseAimbot.TeamCheck and CanDamagePlayer(player)) or not Settings.MouseAimbot.TeamCheck then
+                local character = player.Character
+                if character and character:FindFirstChild("Humanoid") and character.Humanoid.Health > 0 then
+                    local targetPart = character:FindFirstChild(Settings.Aimbot.TargetPart)
+                    if targetPart then
+                        local pos, onScreen = Camera:WorldToScreenPoint(targetPart.Position)
+                        if onScreen then
+                            local distance = (Vector2.new(mouse.X, mouse.Y) - Vector2.new(pos.X, pos.Y)).Magnitude
+                            if distance < shortestDistance then
+                                closestPlayer = player
+                                shortestDistance = distance
+                            end
                         end
                     end
                 end
             end
         end
     end
-
-    return closestPlayer
+    
+    return closestPlayer, shortestDistance
 end
 
--- Utility function to create ESP for a player
-local function CreateESP(player)
-    local esp = {
-        Box = Drawing.new("Square"),
-        Name = Drawing.new("Text"),
-        Distance = Drawing.new("Text"),
-        Snapline = Drawing.new("Line")
-    }
+-- Function to get closest enemy player to the camera
+local function GetClosestPlayerToCamera(fov)
+    local closestPlayer = nil
+    local shortestDistance = fov or math.huge
+    local mouse = UserInputService:GetMouseLocation()
 
-    esp.Box.Visible = false
-    esp.Box.Color = Settings.ESP.BoxColor
-    esp.Box.Thickness = 2
-    esp.Box.Filled = false
-    esp.Box.Transparency = 1
-
-    esp.Name.Visible = false
-    esp.Name.Color = Color3.new(1, 1, 1)
-    esp.Name.Size = 14
-    esp.Name.Center = true
-    esp.Name.Outline = true
-
-    esp.Distance.Visible = false
-    esp.Distance.Color = Color3.new(1, 1, 1)
-    esp.Distance.Size = 12
-    esp.Distance.Center = true
-    esp.Distance.Outline = true
-
-    esp.Snapline.Visible = false
-    esp.Snapline.Color = Settings.ESP.BoxColor
-    esp.Snapline.Thickness = 1
-    esp.Snapline.Transparency = 1
-
-    Settings.ESP.Players[player] = esp
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            -- Team check
+            if (Settings.Aimbot.TeamCheck and CanDamagePlayer(player)) or not Settings.Aimbot.TeamCheck then
+                local character = player.Character
+                if character and character:FindFirstChild("Humanoid") and character.Humanoid.Health > 0 then
+                    local targetPart = character:FindFirstChild(Settings.Aimbot.TargetPart)
+                    if targetPart then
+                        local pos, onScreen = Camera:WorldToScreenPoint(targetPart.Position)
+                        if onScreen then
+                            local distance = (Vector2.new(mouse.X, mouse.Y) - Vector2.new(pos.X, pos.Y)).Magnitude
+                            if distance < shortestDistance then
+                                closestPlayer = player
+                                shortestDistance = distance
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+    
+    return closestPlayer, shortestDistance
 end
 
--- Utility function to update ESP for all players
-local function UpdateESP()
-    for player, esp in pairs(Settings.ESP.Players) do
-        if player.Character and player ~= LocalPlayer and player.Character:FindFirstChild("HumanoidRootPart") then
-            local humanoidRootPart = player.Character.HumanoidRootPart
-            local head = player.Character:FindFirstChild("Head")
-            local screenPos, onScreen = Camera:WorldToViewportPoint(humanoidRootPart.Position)
+-- NEW: Helper function to move the mouse cursor to a target position
+local function MoveMouse(targetPosition, smoothness)
+    local currentPosition = UserInputService:GetMouseLocation()
+    local newPosition = currentPosition:Lerp(targetPosition, 1 - smoothness)
+    
+    -- Use mousemoveabs if available (preferred method)
+    if mousemoveabs then
+        mousemoveabs(newPosition.X, newPosition.Y)
+    else
+        -- Fallback to mouse movement delta if absolute positioning isn't available
+        local delta = newPosition - currentPosition
+        if mousemoverel then
+            mousemoverel(delta.X, delta.Y)
+        end
+    end
+    
+    return newPosition
+end
 
-            if onScreen and Settings.ESP.Enabled then
-                if Settings.ESP.TeamCheck and player.Team == LocalPlayer.Team then
-                    esp.Box.Visible, esp.Name.Visible, esp.Distance.Visible, esp.Snapline.Visible = false, false, false, false
-                    continue
-                end
+-- Update aim method display
+local function UpdateAimMethodDisplay()
+    if Settings.Aimbot.AimMode == "Camera" then
+        AimMethodIndicator.Text = "Aim Method: Camera"
+        AimMethodIndicator.Color = Color3.fromRGB(255, 0, 0)
+    else
+        AimMethodIndicator.Text = "Aim Method: Mouse"
+        AimMethodIndicator.Color = Color3.fromRGB(0, 255, 255)
+    end
+end
 
-                -- Update Box ESP
-                if Settings.ESP.Boxes then
-                    local size = (Camera:WorldToViewportPoint(humanoidRootPart.Position + Vector3.new(3, 6, 0)).Y - Camera:WorldToViewportPoint(humanoidRootPart.Position + Vector3.new(-3, -3, 0)).Y) / 2
-                    esp.Box.Size = Vector2.new(size * 0.7, size * 1)
-                    esp.Box.Position = Vector2.new(screenPos.X - esp.Box.Size.X / 2, screenPos.Y - esp.Box.Size.Y / 2)
-                    esp.Box.Color = Settings.ESP.Rainbow and Color3.fromHSV(tick() % 5 / 5, 1, 1) or Settings.ESP.BoxColor
-                    esp.Box.Visible = true
-                else
-                    esp.Box.Visible = false
-                end
+-- Update FOV circles
+RunService.RenderStepped:Connect(function()
+    -- Update FOV circles position
+    local mousePos = UserInputService:GetMouseLocation()
+    FOVCircle.Position = mousePos
+    FOVCircle.Visible = Settings.Aimbot.ShowFOV and Settings.Aimbot.Enabled
+    FOVCircle.Radius = Settings.Aimbot.FOV
+    
+    -- Update Mouse FOV circle
+    MouseFOVCircle.Position = mousePos
+    MouseFOVCircle.Visible = MouseFOVCircle.Visible and Settings.MouseAimbot.Enabled
+    MouseFOVCircle.Radius = Settings.MouseAimbot.FOV
+end)
 
-                -- Snaplines
-                if Settings.ESP.Snaplines then
-                    esp.Snapline.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
-                    esp.Snapline.To = Vector2.new(screenPos.X, screenPos.Y)
-                    esp.Snapline.Color = Settings.ESP.Rainbow and Color3.fromHSV(tick() % 5 / 5, 1, 1) or Settings.ESP.BoxColor
-                    esp.Snapline.Visible = true
-                else
-                    esp.Snapline.Visible = false
+-- Process aimbot targeting
+RunService.RenderStepped:Connect(function()
+    -- Camera-based aimbot
+    if Settings.Aimbot.Enabled then
+        local player, distance = GetClosestPlayerToCamera(Settings.Aimbot.FOV)
+        
+        if player then
+            local character = player.Character
+            if character then
+                local targetPart = character:FindFirstChild(Settings.Aimbot.TargetPart)
+                if targetPart then
+                    -- Get screen position of target - aim directly at center of head
+                    local headCenterPos = targetPart.Position
+                    local pos, onScreen = Camera:WorldToScreenPoint(headCenterPos)
+                    
+                    if onScreen then
+                        -- Always update aimbot snap line regardless of active state
+                        local mousePosition = UserInputService:GetMouseLocation()
+                        AimbotSnapLine.From = Vector2.new(mousePosition.X, mousePosition.Y)
+                        AimbotSnapLine.To = Vector2.new(pos.X, pos.Y)
+                        AimbotSnapLine.Visible = true
+                        
+                        -- Only do aiming if active
+                        if Settings.Aimbot.Active then
+                            if Settings.Aimbot.AimMode == "Camera" then
+                            -- Camera-based aiming
+                            local targetPosition = targetPart.Position
+                            
+                            -- Apply precision factor
+                            local currentCameraPosition = Camera.CFrame.Position
+                            local aimDirection = (targetPosition - currentCameraPosition).Unit
+                            local precision = Settings.Aimbot.PrecisionFactor
+                            
+                            -- Create a slightly offset target position based on precision
+                            local randomOffset = Vector3.new(
+                                (math.random() - 0.5) * (1 - precision) * 2,
+                                (math.random() - 0.5) * (1 - precision) * 2,
+                                (math.random() - 0.5) * (1 - precision) * 2
+                            )
+                            
+                            local adjustedTargetPosition = targetPosition + randomOffset
+                            
+                            -- Calculate the target rotation
+                            local targetCFrame = CFrame.lookAt(currentCameraPosition, adjustedTargetPosition)
+                            
+                            -- Apply smoothing
+                            local smoothness = Settings.Aimbot.Smoothness
+                            local currentRotation = Camera.CFrame - Camera.CFrame.Position
+                            local targetRotation = targetCFrame - targetCFrame.Position
+                            
+                            local smoothedRotation = currentRotation:Lerp(targetRotation, 1 - smoothness)
+                            Camera.CFrame = CFrame.new(currentCameraPosition) * smoothedRotation
+                        elseif Settings.Aimbot.AimMode == "Mouse" then
+                            -- Use camera aimbot settings for mouse movement
+                            local mousePosition = UserInputService:GetMouseLocation()
+                            local targetVector = Vector2.new(pos.X, pos.Y)
+                            
+                            -- Apply smoothing to mouse movement
+                            MoveMouse(targetVector, Settings.Aimbot.Smoothness)
+                        end
+                    else
+                        AimbotSnapLine.Visible = false
+                    end
                 end
-
-                -- Names and Distance
-                if Settings.ESP.Names and head then
-                    esp.Name.Position = Vector2.new(screenPos.X, screenPos.Y - esp.Box.Size.Y / 2 - 15)
-                    esp.Name.Text = player.Name
-                    esp.Name.Visible = true
-                else
-                    esp.Name.Visible = false
-                end
-
-                if Settings.ESP.Distance then
-                    local distance = math.floor((humanoidRootPart.Position - Camera.CFrame.Position).Magnitude)
-                    esp.Distance.Position = Vector2.new(screenPos.X, screenPos.Y + esp.Box.Size.Y / 2 + 5)
-                    esp.Distance.Text = tostring(distance) .. " studs"
-                    esp.Distance.Visible = true
-                else
-                    esp.Distance.Visible = false
-                end
-            else
-                esp.Box.Visible, esp.Name.Visible, esp.Distance.Visible, esp.Snapline.Visible = false, false, false, false
             end
         else
-            esp.Box.Visible, esp.Name.Visible, esp.Distance.Visible, esp.Snapline.Visible = false, false, false, false
+            AimbotSnapLine.Visible = false
         end
+    else
+        AimbotSnapLine.Visible = false
     end
-end
-
--- Add button to toggle UI visibility
-local toggleUIButton = Instance.new("TextButton")
-toggleUIButton.Name = "ToggleUIButton"
-toggleUIButton.Size = UDim2.new(0, 40, 0, 40)
-toggleUIButton.Position = UDim2.new(0.5, -20, 0, 10)
-toggleUIButton.AnchorPoint = Vector2.new(0.5, 0)
-toggleUIButton.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
-toggleUIButton.BorderSizePixel = 0
-toggleUIButton.Text = "UI"
-toggleUIButton.TextColor3 = Color3.fromRGB(255, 0, 255)
-toggleUIButton.TextSize = 16
-toggleUIButton.Font = Enum.Font.SourceSansBold
-toggleUIButton.Visible = false
-toggleUIButton.Parent = DropShadowHolder
-
--- Add rounded corners to toggle button
-local toggleUICorner = Instance.new("UICorner")
-toggleUICorner.CornerRadius = UDim.new(0, 10)
-toggleUICorner.Parent = toggleUIButton
-
--- Function to toggle UI
-local function ToggleUI()
-    Panel.Visible = not Panel.Visible
-    toggleUIButton.Visible = not Panel.Visible
-end
-
--- Handle UI toggle button click
-toggleUIButton.MouseButton1Click:Connect(function()
-    ToggleUI()
-end)
-
--- Close button
-local closeButton = Instance.new("TextButton")
-closeButton.Name = "CloseButton"
-closeButton.Size = UDim2.new(0, 30, 0, 30)
-closeButton.Position = UDim2.new(1, -35, 0, 5)
-closeButton.BackgroundTransparency = 1
-closeButton.Text = "X"
-closeButton.TextColor3 = Color3.fromRGB(200, 200, 200)
-closeButton.TextSize = 20
-closeButton.Font = Enum.Font.SourceSansBold
-closeButton.Parent = TitleBar
-
--- Handle close button click
-closeButton.MouseButton1Click:Connect(function()
-    ToggleUI()
-end)
-
--- Initialize ESP for all existing players
-for _, player in pairs(Players:GetPlayers()) do
-    if player ~= LocalPlayer then
-        CreateESP(player)
-    end
-end
-
--- Handle new players
-Players.PlayerAdded:Connect(function(player)
-    if player ~= LocalPlayer then
-        CreateESP(player)
-    end
-end)
-
--- Handle player removal
-Players.PlayerRemoving:Connect(function(player)
-    if Settings.ESP.Players[player] then
-        for _, drawing in pairs(Settings.ESP.Players[player]) do
-            drawing:Remove()
+    
+    -- NEW: Mouse-based aimbot (separately implemented for precision)
+    if Settings.MouseAimbot.Enabled then
+        local player, distance = GetClosestPlayerToMouse(Settings.MouseAimbot.FOV)
+        
+        if player then
+            local character = player.Character
+            if character then
+                local targetPart = character:FindFirstChild(Settings.Aimbot.TargetPart)
+                if targetPart then
+                    -- Always aim at center of the head
+                    local headCenterPos = targetPart.Position
+                    local pos, onScreen = Camera:WorldToScreenPoint(headCenterPos)
+                    
+                    if onScreen then
+                        -- Apply precision head targeting if enabled
+                        if Settings.MouseAimbot.HeadPrecision and Settings.Aimbot.TargetPart == "Head" then
+                            -- Apply custom offsets for more precise head targeting
+                            pos = Vector3.new(
+                                pos.X + Settings.MouseAimbot.OffsetX,
+                                pos.Y + Settings.MouseAimbot.OffsetY, 
+                                pos.Z
+                            )
+                        end
+                        
+                        -- Always show mouse aimbot snap line regardless of active state
+                        local mousePosition = UserInputService:GetMouseLocation()
+                        MouseAimbotSnapLine.From = Vector2.new(mousePosition.X, mousePosition.Y)
+                        MouseAimbotSnapLine.To = Vector2.new(pos.X, pos.Y)
+                        MouseAimbotSnapLine.Visible = Settings.MouseAimbot.SnapLineVisible
+                        
+                        -- Only move mouse if active
+                        if Settings.MouseAimbot.Active then
+                            -- Move mouse with higher precision
+                            local targetVector = Vector2.new(pos.X, pos.Y)
+                            MoveMouse(targetVector, Settings.MouseAimbot.Smoothness)
+                        end
+                    else
+                        MouseAimbotSnapLine.Visible = false
+                    end
+                end
+            end
+        else
+            MouseAimbotSnapLine.Visible = false
         end
-        Settings.ESP.Players[player] = nil
+    else
+        MouseAimbotSnapLine.Visible = false
     end
+end
 end)
 
--- Handle user input for aimbot activation
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if not gameProcessed and input.UserInputType == Enum.UserInputType.MouseButton2 then
+-- Handle aimbot activation
+UserInputService.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton2 then  -- Right mouse button
         Settings.Aimbot.Active = true
+        -- Update camera aimbot indicator when active
+        CameraAimbotIndicator.Text = "Camera Aimbot: ON"
+        CameraAimbotIndicator.Color = Color3.fromRGB(255, 0, 0) -- Bright red when active
+    end
+    
+    -- Use separate key for mouse-based aimbot (Shift key)
+    if input.KeyCode == Enum.KeyCode.LeftShift or input.KeyCode == Enum.KeyCode.RightShift then
+        Settings.MouseAimbot.Active = true
+        -- Update mouse aimbot indicator when active
+        MouseAimbotIndicator.Text = "Mouse Aimbot: ON"
+        MouseAimbotIndicator.Color = Color3.fromRGB(0, 255, 255) -- Bright cyan when active
+    end
+    
+    -- Toggle aim mode with a key (M key)
+    if input.KeyCode == Enum.KeyCode.M then
+        Settings.Aimbot.AimMode = (Settings.Aimbot.AimMode == "Camera") and "Mouse" or "Camera"
+        UpdateAimMethodDisplay()
+        
+        -- Notify of mode change
+        Notify("Switched to " .. Settings.Aimbot.AimMode .. " aiming mode", 2)
     end
 end)
 
 UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton2 then
+    if input.UserInputType == Enum.UserInputType.MouseButton2 then  -- Right mouse button
         Settings.Aimbot.Active = false
+        -- Update camera aimbot indicator when inactive
+        CameraAimbotIndicator.Text = "Camera Aimbot: OFF"
+        CameraAimbotIndicator.Color = Color3.fromRGB(155, 0, 0) -- Dimmer red when inactive
+        -- Don't hide snap line, keep it visible at all times
+    end
+    
+    -- Release mouse-based aimbot
+    if input.KeyCode == Enum.KeyCode.LeftShift or input.KeyCode == Enum.KeyCode.RightShift then
+        Settings.MouseAimbot.Active = false
+        -- Update mouse aimbot indicator when inactive
+        MouseAimbotIndicator.Text = "Mouse Aimbot: OFF"
+        MouseAimbotIndicator.Color = Color3.fromRGB(0, 155, 155) -- Dimmer cyan when inactive
+        -- Don't hide snap line, keep it visible at all times
     end
 end)
 
--- Main Update Loop
-RunService.RenderStepped:Connect(function()
-    -- Update ESP
-    UpdateESP()
+-- Notification when script is loaded
+local function Notify(text, duration)
+    local notification = Instance.new("Frame")
+    notification.Name = "Notification"
+    notification.Size = UDim2.new(0, 300, 0, 50)
+    notification.Position = UDim2.new(0.5, -150, 0, -60)
+    notification.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+    notification.BorderSizePixel = 0
+    notification.Parent = DropShadowHolder
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 6)
+    corner.Parent = notification
+    
+    local message = Instance.new("TextLabel")
+    message.Name = "Message"
+    message.Size = UDim2.new(1, -20, 1, 0)
+    message.Position = UDim2.new(0, 10, 0, 0)
+    message.BackgroundTransparency = 1
+    message.TextColor3 = Color3.fromRGB(255, 0, 255)
+    message.TextSize = 16
+    message.Font = Enum.Font.SourceSans
+    message.Text = text
+    message.Parent = notification
+    
+    -- Animate notification in
+    notification:TweenPosition(UDim2.new(0.5, -150, 0, 20), "Out", "Quad", 0.5, true)
+    
+    -- Remove after duration
+    task.delay(duration, function()
+        notification:TweenPosition(UDim2.new(0.5, -150, 0, -60), "In", "Quad", 0.5, true, function()
+            notification:Destroy()
+        end)
+    end)
+end
 
-    -- Update FOV circle
-    FOVCircle.Position = UserInputService:GetMouseLocation()
-    FOVCircle.Radius = Settings.Aimbot.FOV
-    FOVCircle.Visible = Settings.Aimbot.Enabled and Settings.Aimbot.ShowFOV
+-- Add ESP system
+-- Draw empty tables for ESP elements
+Settings.ESP.Boxes = {}
+Settings.ESP.Names = {}
+Settings.ESP.Distances = {}
+Settings.ESP.HealthBars = {}
+Settings.ESP.Tracers = {}
 
-    -- Only update snap line if it's visible
-    if Settings.Aimbot.SnapLineVisible then
-        AimbotSnapLine.From = UserInputService:GetMouseLocation()
-        AimbotSnapLine.Visible = Settings.Aimbot.Enabled
-    else
-        AimbotSnapLine.Visible = false
-    end
+-- Function to create ESP elements for a player
+local function CreatePlayerESP(player)
+    -- Create box
+    local box = Drawing.new("Square")
+    box.Visible = false
+    box.Color = Settings.ESP.BoxColor
+    box.Thickness = 1
+    box.Transparency = 1
+    box.Filled = false
+    
+    -- Create name text
+    local name = Drawing.new("Text")
+    name.Visible = false
+    name.Color = Settings.ESP.BoxColor
+    name.Size = 14
+    name.Center = true
+    name.Outline = true
+    
+    -- Create distance text
+    local distance = Drawing.new("Text")
+    distance.Visible = false
+    distance.Color = Settings.ESP.BoxColor
+    distance.Size = 12
+    distance.Center = true
+    distance.Outline = true
+    
+    -- Create health bar outline
+    local healthOutline = Drawing.new("Square")
+    healthOutline.Visible = false
+    healthOutline.Color = Color3.fromRGB(0, 0, 0)
+    healthOutline.Thickness = 1
+    healthOutline.Transparency = 1
+    healthOutline.Filled = false
+    
+    -- Create health bar fill
+    local healthBar = Drawing.new("Square")
+    healthBar.Visible = false
+    healthBar.Color = Color3.fromRGB(0, 255, 0)
+    healthBar.Thickness = 1
+    healthBar.Transparency = 1
+    healthBar.Filled = true
+    
+    -- Create tracer
+    local tracer = Drawing.new("Line")
+    tracer.Visible = false
+    tracer.Color = Settings.ESP.BoxColor
+    tracer.Thickness = 1
+    tracer.Transparency = 1
+    
+    -- Store elements
+    Settings.ESP.Boxes[player] = box
+    Settings.ESP.Names[player] = name
+    Settings.ESP.Distances[player] = distance
+    Settings.ESP.HealthBars[player] = {outline = healthOutline, fill = healthBar}
+    Settings.ESP.Tracers[player] = tracer
+end
 
-    -- Use the new camera-based aiming method like in the sample code
-    if Settings.Aimbot.Enabled and UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
-        local target = GetClosestPlayer()
-        if target and target.Character then
-            local targetPart = target.Character:FindFirstChild(Settings.Aimbot.TargetPart)
-            if targetPart then
-                -- Update snap line endpoint if needed
-                local pos, onScreen = Camera:WorldToViewportPoint(targetPart.Position)
-                if onScreen then
-                    if Settings.Aimbot.SnapLineVisible then
-                        AimbotSnapLine.To = Vector2.new(pos.X, pos.Y)
-                    end
-                    
-                    -- Use direct camera manipulation like in the sample code
-                    local targetPos = targetPart.Position
-                    local currentCFrame = Camera.CFrame
-                    local targetCFrame = CFrame.new(currentCFrame.Position, targetPos)
-                    
-                    -- Apply smoothness - higher values = smoother motion
-                    local smoothValue = Settings.Aimbot.Smoothness
-                    Camera.CFrame = currentCFrame:Lerp(targetCFrame, smoothValue)
+-- Function to update ESP for all players
+local function UpdateESP()
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            -- Create ESP elements if they don't exist
+            if not Settings.ESP.Boxes[player] then
+                CreatePlayerESP(player)
+            end
+            
+            -- Only show ESP if enabled
+            if Settings.ESP.Enabled then
+                -- Check if player should be shown based on team check
+                local character = player.Character
+                local shouldShowESP = true
+                
+                -- If not using CanDamagePlayer function directly, we can check if they're on a different team
+                if Settings.ESP.TeamCheck then
+                    shouldShowESP = CanDamagePlayer(player)
                 end
+                
+                if character and character:FindFirstChild("Humanoid") and character.Humanoid.Health > 0 and shouldShowESP then
+                    local humanoid = character.Humanoid
+                    local rootPart = character:FindFirstChild("HumanoidRootPart")
+                    local head = character:FindFirstChild("Head")
+                    
+                    if rootPart and head then
+                        local rootPos, rootOnScreen = Camera:WorldToScreenPoint(rootPart.Position)
+                        local headPos = Camera:WorldToScreenPoint(head.Position)
+                        
+                        if rootOnScreen then
+                            -- Calculate box dimensions
+                            local boxSize = Vector2.new(1000 / rootPos.Z, headPos.Y - rootPos.Y)
+                            local boxPosition = Vector2.new(rootPos.X - boxSize.X / 2, rootPos.Y - boxSize.Y / 2)
+                            
+                            -- Update box
+                            local box = Settings.ESP.Boxes[player]
+                            box.Size = boxSize
+                            box.Position = boxPosition
+                            box.Visible = Settings.ESP.Boxes
+                            
+                            -- Update name text
+                            local name = Settings.ESP.Names[player]
+                            name.Text = player.Name
+                            name.Position = Vector2.new(rootPos.X, boxPosition.Y - 15)
+                            name.Visible = Settings.ESP.Names
+                            
+                            -- Update distance text
+                            local dist = Settings.ESP.Distances[player]
+                            local distance = math.floor((Camera.CFrame.Position - rootPart.Position).Magnitude)
+                            dist.Text = tostring(distance) .. "m"
+                            dist.Position = Vector2.new(rootPos.X, boxPosition.Y + boxSize.Y + 5)
+                            dist.Visible = Settings.ESP.Distance
+                            
+                            -- Update health bar
+                            local healthBars = Settings.ESP.HealthBars[player]
+                            local healthOutline = healthBars.outline
+                            local healthBar = healthBars.fill
+                            
+                            healthOutline.Size = Vector2.new(5, boxSize.Y)
+                            healthOutline.Position = Vector2.new(boxPosition.X - 7, boxPosition.Y)
+                            healthOutline.Visible = Settings.ESP.Health
+                            
+                            local healthPercent = humanoid.Health / humanoid.MaxHealth
+                            healthBar.Size = Vector2.new(3, boxSize.Y * healthPercent)
+                            healthBar.Position = Vector2.new(boxPosition.X - 6, boxPosition.Y + boxSize.Y * (1 - healthPercent))
+                            healthBar.Color = Color3.fromRGB(255 * (1 - healthPercent), 255 * healthPercent, 0)
+                            healthBar.Visible = Settings.ESP.Health
+                            
+                            -- Update tracer
+                            local tracer = Settings.ESP.Tracers[player]
+                            tracer.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
+                            tracer.To = Vector2.new(rootPos.X, rootPos.Y)
+                            tracer.Visible = Settings.ESP.Snaplines
+                            
+                            -- Apply rainbow color if enabled
+                            if Settings.ESP.Rainbow then
+                                local hue = tick() % 5 / 5
+                                local color = Color3.fromHSV(hue, 1, 1)
+                                
+                                box.Color = color
+                                name.Color = color
+                                dist.Color = color
+                                tracer.Color = color
+                            else
+                                box.Color = Settings.ESP.BoxColor
+                                name.Color = Settings.ESP.BoxColor
+                                dist.Color = Settings.ESP.BoxColor
+                                tracer.Color = Settings.ESP.BoxColor
+                            end
+                        else
+                            -- Hide ESP if off screen
+                            Settings.ESP.Boxes[player].Visible = false
+                            Settings.ESP.Names[player].Visible = false
+                            Settings.ESP.Distances[player].Visible = false
+                            Settings.ESP.HealthBars[player].outline.Visible = false
+                            Settings.ESP.HealthBars[player].fill.Visible = false
+                            Settings.ESP.Tracers[player].Visible = false
+                        end
+                    else
+                        -- Hide ESP if no root part or head
+                        Settings.ESP.Boxes[player].Visible = false
+                        Settings.ESP.Names[player].Visible = false
+                        Settings.ESP.Distances[player].Visible = false
+                        Settings.ESP.HealthBars[player].outline.Visible = false
+                        Settings.ESP.HealthBars[player].fill.Visible = false
+                        Settings.ESP.Tracers[player].Visible = false
+                    end
+                else
+                    -- Hide ESP if player is not valid
+                    Settings.ESP.Boxes[player].Visible = false
+                    Settings.ESP.Names[player].Visible = false
+                    Settings.ESP.Distances[player].Visible = false
+                    Settings.ESP.HealthBars[player].outline.Visible = false
+                    Settings.ESP.HealthBars[player].fill.Visible = false
+                    Settings.ESP.Tracers[player].Visible = false
+                end
+            else
+                -- Hide ESP if disabled
+                Settings.ESP.Boxes[player].Visible = false
+                Settings.ESP.Names[player].Visible = false
+                Settings.ESP.Distances[player].Visible = false
+                Settings.ESP.HealthBars[player].outline.Visible = false
+                Settings.ESP.HealthBars[player].fill.Visible = false
+                Settings.ESP.Tracers[player].Visible = false
             end
         end
     end
+end
+
+-- Clean up ESP elements when player leaves
+Players.PlayerRemoving:Connect(function(player)
+    if Settings.ESP.Boxes[player] then
+        Settings.ESP.Boxes[player]:Remove()
+        Settings.ESP.Names[player]:Remove()
+        Settings.ESP.Distances[player]:Remove()
+        Settings.ESP.HealthBars[player].outline:Remove()
+        Settings.ESP.HealthBars[player].fill:Remove()
+        Settings.ESP.Tracers[player]:Remove()
+        
+        Settings.ESP.Boxes[player] = nil
+        Settings.ESP.Names[player] = nil
+        Settings.ESP.Distances[player] = nil
+        Settings.ESP.HealthBars[player] = nil
+        Settings.ESP.Tracers[player] = nil
+    end
 end)
 
--- Print confirmation message
-print("Ultimate Aimbot loaded successfully!")
-print("Hold right mouse button to activate aimbot")
+-- Update ESP on RenderStepped
+RunService.RenderStepped:Connect(UpdateESP)
+
+-- Initial setup
+UpdateAimMethodDisplay()
+
+-- Notify on load
+Notify("Enhanced Aimbot Loaded! Press Shift for mouse aimbot, M to toggle aim mode", 5)
+
+-- Print controls to console for reference
+print("=== Enhanced Aimbot Controls ===")
+print("Right Mouse Button: Activate regular aimbot")
+print("Shift Key: Activate mouse precision aimbot")
+print("M Key: Toggle between Camera and Mouse aim modes")
+print("===========================")
